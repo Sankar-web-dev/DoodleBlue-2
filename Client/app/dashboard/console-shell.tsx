@@ -10,8 +10,8 @@ import {
   SidebarTrigger,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { getNavItems, type SectionId } from "./_components/console-nav";
-import { RESOURCE_LABELS } from "@/lib/permissions";
+import { NAV_ITEMS, type SectionId } from "./_components/console-nav";
+import { RESOURCE_LABELS, usePermissions } from "@/lib/permissions";
 import { Card, CardContent } from "@/components/ui/card";
 import { SidebarBrand } from "./_components/sidebar-brand";
 import { SidebarNav } from "./_components/sidebar-nav";
@@ -19,7 +19,9 @@ import { SidebarUserFooter } from "./_components/sidebar-user-footer";
 import { RolesConsole } from "./roles-console";
 
 export function ConsoleShell({ user }: { user: AuthUser }) {
-  const items = getNavItems(user);
+  const { can } = usePermissions(user);
+  // Only show nav items for tables the user has "read" permission on.
+  const items = NAV_ITEMS.filter((item) => can(item.id, "read"));
   const [section, setSection] = useState<SectionId>(items[0]?.id ?? "roles");
 
   return (
