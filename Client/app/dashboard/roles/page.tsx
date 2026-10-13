@@ -1,5 +1,5 @@
-import { RolesConsole } from "../roles-console";
+import { RolesView } from "./_components/roles-view";
 
 export default function RolesPage() {
-  return <RolesConsole />;
+  return <RolesView />;
 }

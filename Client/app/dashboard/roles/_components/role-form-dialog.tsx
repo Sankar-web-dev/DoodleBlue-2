@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ShieldCheck } from "lucide-react";
 
-import { rolesApi, Role, ROLES_LIST_KEY } from "@/api/roles.api";
+import { ROLES_LIST_KEY } from "@/api/roles.api";
+import type { Role } from "@/api/roles.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,18 +24,10 @@ import {
   ACTION_LABELS,
   matrixToPermissions,
   permissionsToMatrix,
-  Resource,
-  Action,
+  type Resource,
+  type Action,
 } from "@/lib/permissions";
-
-interface Props {
-  open: boolean;
-  onClose: () => void;
-  /** Pass an existing role to edit it; undefined = create mode */
-  role?: Role;
-}
-
-type Matrix = Record<Resource, Record<Action, boolean>>;
+import { createRoleAction, updateRoleAction, type Matrix } from "../_actions/roles.actions";
 
 function emptyMatrix(): Matrix {
   const m = {} as Matrix;
@@ -44,7 +37,14 @@ function emptyMatrix(): Matrix {
   return m;
 }
 
-export function CreateRoleCard({ open, onClose, role }: Props) {
+interface RoleFormDialogProps {
+  open: boolean;
+  onClose: () => void;
+  /** Pass an existing role to edit it; undefined = create mode */
+  role?: Role;
+}
+
+export function RoleFormDialog({ open, onClose, role }: RoleFormDialogProps) {
   const queryClient = useQueryClient();
   const isEdit = !!role;
 
@@ -70,12 +70,7 @@ export function CreateRoleCard({ open, onClose, role }: Props) {
   }, [open, role]);
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      rolesApi.createRole({
-        name: name.trim(),
-        description: description.trim(),
-        permissions: matrixToPermissions(matrix),
-      }),
+    mutationFn: () => createRoleAction(name, description, matrix),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ROLES_LIST_KEY });
       onClose();
@@ -84,12 +79,7 @@ export function CreateRoleCard({ open, onClose, role }: Props) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: () =>
-      rolesApi.updateRole(role!.id, {
-        name: name.trim(),
-        description: description.trim(),
-        permissions: matrixToPermissions(matrix),
-      }),
+    mutationFn: () => updateRoleAction(role!.id, name, description, matrix),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ROLES_LIST_KEY });
       onClose();
@@ -102,10 +92,7 @@ export function CreateRoleCard({ open, onClose, role }: Props) {
   function toggle(resource: Resource, action: Action) {
     setMatrix((prev) => ({
       ...prev,
-      [resource]: {
-        ...prev[resource],
-        [action]: !prev[resource][action],
-      },
+      [resource]: { ...prev[resource], [action]: !prev[resource][action] },
     }));
   }
 
@@ -122,18 +109,8 @@ export function CreateRoleCard({ open, onClose, role }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
-    if (!name.trim()) {
-      setError("Role name is required.");
-      return;
-    }
-
-    const permissions = matrixToPermissions(matrix);
-    if (permissions.length === 0) {
-      setError("Select at least one permission.");
-      return;
-    }
-
+    if (!name.trim()) { setError("Role name is required."); return; }
+    if (matrixToPermissions(matrix).length === 0) { setError("Select at least one permission."); return; }
     if (isEdit) updateMutation.mutate();
     else createMutation.mutate();
   }
