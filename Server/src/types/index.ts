@@ -52,6 +52,7 @@ export interface SafeUserResponse {
   /** Role name string — "SUPER_ADMIN" or the Role document's name. */
   role: string;
   roleId?: string;
+  image?: string;
   mustChangePassword: boolean;
   isActive: boolean;
   createdAt: Date;

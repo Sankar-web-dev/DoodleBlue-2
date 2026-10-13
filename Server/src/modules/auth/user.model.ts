@@ -13,6 +13,8 @@ export interface IUser extends Document {
   role: string;
   /** References the Role document. Not set for SUPER_ADMIN. */
   roleId?: mongoose.Types.ObjectId;
+  /** Optional profile image URL. */
+  image?: string;
   mustChangePassword: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -46,6 +48,11 @@ const userSchema = new Schema<IUser>(
       type: Schema.Types.ObjectId,
       ref: "Role",
       required: false,
+    },
+    image: {
+      type: String,
+      required: false,
+      trim: true,
     },
     mustChangePassword: {
       type: Boolean,

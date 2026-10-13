@@ -14,6 +14,7 @@ function safeUser(user: IUser) {
     email: user.email,
     role: user.role,
     roleId: user.roleId?.toString(),
+    image: user.image,
     mustChangePassword: user.mustChangePassword,
     isActive: user.isActive,
     createdAt: user.createdAt,
@@ -53,6 +54,7 @@ export async function createUser(input: CreateUserBody) {
     // authoritative link used to resolve permissions.
     role: role.name,
     roleId: new mongoose.Types.ObjectId(input.roleId),
+    image: input.image,
     mustChangePassword: true,
     isActive: true,
   });

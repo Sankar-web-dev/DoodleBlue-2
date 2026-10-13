@@ -47,6 +47,7 @@ async function safeUser(user: IUser) {
     email: user.email,
     role: user.role,
     roleId: user.roleId?.toString(),
+    image: user.image,
     mustChangePassword: user.mustChangePassword,
     isActive: user.isActive,
     permissions,

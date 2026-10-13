@@ -19,12 +19,21 @@ export function SidebarUserFooter({ user }: { user: AuthUser }) {
   return (
     <SidebarFooter className="mt-auto border-t border-sidebar-border px-4 py-4 group-data-[collapsible=icon]:p-2">
       <div className="mb-2 flex items-center gap-3 rounded-xl border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-3 group-data-[collapsible=icon]:p-1.5 group-data-[collapsible=icon]:justify-center">
-        <div
-          title={user.name}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/20 text-sm font-bold text-primary"
-        >
-          {initials(user.name)}
-        </div>
+        {user.image ? (
+          <img
+            src={user.image}
+            alt={user.name}
+            title={user.name}
+            className="h-10 w-10 shrink-0 rounded-full border border-primary/30 object-cover"
+          />
+        ) : (
+          <div
+            title={user.name}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/20 text-sm font-bold text-primary"
+          >
+            {initials(user.name)}
+          </div>
+        )}
         <div className="min-w-0 group-data-[collapsible=icon]:hidden">
           <p className="truncate text-sm font-semibold">{user.name}</p>
           <p className="truncate text-xs text-muted-foreground">

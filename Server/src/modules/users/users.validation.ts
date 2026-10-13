@@ -15,6 +15,8 @@ export const createUserSchema = z
     password: z.string().min(10).max(128),
     /** Must reference an active Role document. */
     roleId: objectId,
+    /** Optional profile image URL. */
+    image: z.string().trim().url().optional(),
   })
   .strict();
 
