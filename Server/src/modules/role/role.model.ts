@@ -1,13 +1,6 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export const RESOURCES = [
-  "students",
-  "courses",
-  "departments",
-  "enrollments",
-  "analytics",
-  "attendance",
-  "admins",
   "roles",
   "users",
 ] as const;

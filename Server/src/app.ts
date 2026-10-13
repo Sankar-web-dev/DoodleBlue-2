@@ -4,15 +4,7 @@ import helmet from "helmet";
 import { createSessionMiddleware } from "./config/session";
 import authRoutes from "./modules/auth/auth.routes";
 import usersRoutes from "./modules/users/users.routes";
-import adminRoutes from "./modules/admin/admin.routes";
 import roleRoutes from "./modules/role/role.routes";
-import studentRoutes from "./modules/student/student.routes";
-import departmentRoutes from "./modules/department/department.routes";
-import courseRoutes from "./modules/course/course.routes";
-import enrollmentRoutes from "./modules/enrollment/enrollment.routes";
-import analyticsRoutes from "./modules/analytics/analytics.routes";
-import attendanceRoutes from "./modules/attendance/attendance.routes";
-import meRoutes from "./modules/me/me.routes";
 import { ApiError } from "./lib/ApiError";
 
 export function createApp() {
@@ -51,14 +43,6 @@ export function createApp() {
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/users", usersRoutes);
   app.use("/api/v1/roles", roleRoutes);
-  app.use("/api/v1/admins", adminRoutes);
-  app.use("/api/v1/students", studentRoutes);
-  app.use("/api/v1/departments", departmentRoutes);
-  app.use("/api/v1/courses", courseRoutes);
-  app.use("/api/v1/enrollments", enrollmentRoutes);
-  app.use("/api/v1/analytics", analyticsRoutes);
-  app.use("/api/v1/attendance", attendanceRoutes);
-  app.use("/api/v1/me", meRoutes);
 
   const errorHandler: ErrorRequestHandler = (
     error,

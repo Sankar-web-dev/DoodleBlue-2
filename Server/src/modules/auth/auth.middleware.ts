@@ -114,42 +114,6 @@ export function authorize(resource: Resource, action: Action) {
 }
 
 /**
- * Guard for student self-service routes (/api/v1/me/*).
- * Passes if the authenticated user has a linked student profile (studentId).
- */
-export function requireStudentAccount(
-  _req: Request,
-  res: Response,
-  next: NextFunction
-): void {
-  const user = res.locals.currentUser as IUser | undefined;
-
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: {
-        code: "UNAUTHENTICATED",
-        message: "Please log in to continue",
-      },
-    });
-    return;
-  }
-
-  if (!user.studentId) {
-    res.status(403).json({
-      success: false,
-      error: {
-        code: "FORBIDDEN",
-        message: "This endpoint is only available for student accounts",
-      },
-    });
-    return;
-  }
-
-  next();
-}
-
-/**
  * Guards routes that require the user to have changed their temporary password.
  */
 export function requirePasswordChanged(

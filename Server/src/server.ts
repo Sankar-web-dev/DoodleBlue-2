@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { createApp } from "./app";
-import { seedSystemRoles } from "./lib/seed";
 import "./config/dns";
 
 dotenv.config({ path: [".env.local", ".env"] });
@@ -15,9 +14,6 @@ async function startServer(): Promise<void> {
     }
 
     await mongoose.connect(mongoUri);
-
-    // Upsert default system roles (ADMIN, STUDENT) before handling requests.
-    await seedSystemRoles();
 
     const app = createApp();
     const port = Number(process.env.PORT) || 5000;

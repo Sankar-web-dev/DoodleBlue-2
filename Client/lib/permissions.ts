@@ -2,26 +2,12 @@ import { useCallback } from "react";
 import type { AuthUser, RolePermission } from "@/api/auth.api";
 
 export type Resource =
-  | "students"
-  | "courses"
-  | "departments"
-  | "enrollments"
-  | "analytics"
-  | "attendance"
-  | "admins"
   | "roles"
   | "users";
 
 export type Action = "create" | "read" | "update" | "delete";
 
 export const RESOURCE_LABELS: Record<Resource, string> = {
-  students:    "Students",
-  courses:     "Courses",
-  departments: "Departments",
-  enrollments: "Enrollments",
-  analytics:   "Analytics",
-  attendance:  "Attendance",
-  admins:      "Admins",
   roles:       "Roles",
   users:       "Users",
 };
@@ -34,13 +20,6 @@ export const ACTION_LABELS: Record<Action, string> = {
 };
 
 export const ALL_RESOURCES: Resource[] = [
-  "students",
-  "courses",
-  "departments",
-  "enrollments",
-  "analytics",
-  "attendance",
-  "admins",
   "roles",
   "users",
 ];

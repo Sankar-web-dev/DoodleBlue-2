@@ -6,11 +6,4 @@
  */
 
 export * from "./auth.api";
-export * from "./courses.api";
-export * from "./departments.api";
-export * from "./enrollments.api";
-export * from "./students.api";
-export * from "./users.api";
-export * from "./analytics.api";
-export * from "./attendance.api";
-export * from "./me.api";
+export * from "./roles.api";

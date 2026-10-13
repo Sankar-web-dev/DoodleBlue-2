@@ -13,7 +13,6 @@ export interface IUser extends Document {
   role: string;
   /** References the Role document. Not set for SUPER_ADMIN. */
   roleId?: mongoose.Types.ObjectId;
-  studentId?: mongoose.Types.ObjectId;
   mustChangePassword: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -46,11 +45,6 @@ const userSchema = new Schema<IUser>(
     roleId: {
       type: Schema.Types.ObjectId,
       ref: "Role",
-      required: false,
-    },
-    studentId: {
-      type: Schema.Types.ObjectId,
-      ref: "Student",
       required: false,
     },
     mustChangePassword: {

@@ -9,8 +9,7 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "seed:super-admin": "tsx src/scripts/seed-super-admin.ts",
-    "reset:super-admin": "tsx src/scripts/reset-super-admin.ts",
-    "seed:dept": "tsx src/scripts/seed-default-department.ts"
+    "reset:super-admin": "tsx src/scripts/reset-super-admin.ts"
   },
   "keywords": [],
   "author": "",

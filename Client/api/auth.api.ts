@@ -12,7 +12,6 @@ export interface AuthUser {
   /** Role name string — "SUPER_ADMIN" for the system account, role name otherwise. */
   role: string;
   roleId?: string;
-  studentId?: string;
   mustChangePassword: boolean;
   isActive: boolean;
   /** Granular permissions from the user's role. Empty for SUPER_ADMIN (implicit full access). */
