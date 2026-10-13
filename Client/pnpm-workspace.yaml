@@ -1,0 +1,5 @@
+allowBuilds:
+  core-js: false
+  sharp: false
+minimumReleaseAgeExclude:
+  - lucide-react@1.56.0
