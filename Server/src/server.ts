@@ -21,6 +21,9 @@ async function startServer(): Promise<void> {
     const server = app.listen(port, () => {
       console.log(`Server running at http://localhost:${port}`);
       console.log("MongoDB Atlas connected successfully");
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`Swagger UI  →  http://localhost:${port}/api-docs`);
+      }
     });
 
     const shutdown = async () => {

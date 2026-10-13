@@ -1,6 +1,7 @@
 import express, { ErrorRequestHandler } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
 import { createSessionMiddleware } from "./config/session";
 import authRoutes from "./modules/auth/auth.routes";
 import usersRoutes from "./modules/users/users.routes";
@@ -12,6 +13,7 @@ import eventRegistrationRoutes from "./modules/event-registration/event-registra
 import attendanceRoutes from "./modules/attendance/attendance.routes";
 import certificateRoutes from "./modules/certificate/certificate.routes";
 import { ApiError } from "./lib/ApiError";
+import { swaggerSpec } from "./config/swagger";
 
 export function createApp() {
   const app = express();
@@ -39,12 +41,47 @@ export function createApp() {
   // Sessions must be registered before authentication routes.
   app.use(createSessionMiddleware());
 
+  /**
+   * @openapi
+   * /api/v1/health:
+   *   get:
+   *     tags:
+   *       - Health
+   *     summary: Health check
+   *     description: Returns server status.
+   *     responses:
+   *       200:
+   *         description: Server is healthy.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     status:
+   *                       type: string
+   *                       example: ok
+   */
   app.get("/api/v1/health", (_req, res) => {
     res.status(200).json({
       success: true,
       data: { status: "ok" },
     });
   });
+
+  // Swagger UI — only available outside production
+  if (process.env.NODE_ENV !== "production") {
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    app.get("/api-docs.json", (_req, res) => {
+      res.setHeader("Content-Type", "application/json");
+      res.send(swaggerSpec);
+    });
+  }
 
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/users", usersRoutes);
