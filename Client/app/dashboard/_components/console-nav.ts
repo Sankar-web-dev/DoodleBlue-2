@@ -16,6 +16,7 @@ export type NavItem = {
   id: SectionId;
   label: string;
   icon: typeof ShieldCheck;
+  href: string;
 };
 
 /**
@@ -24,12 +25,12 @@ export type NavItem = {
  * access to that resource (SUPER_ADMIN sees everything).
  */
 export const NAV_ITEMS: NavItem[] = [
-  { id: "roles",               label: "Roles",               icon: ShieldCheck },
-  { id: "users",               label: "Users",               icon: Users },
-  { id: "clubs",               label: "Clubs",               icon: Building2 },
-  { id: "clubMemberships",     label: "Club Memberships",    icon: UserCheck },
-  { id: "events",              label: "Events",              icon: CalendarDays },
-  { id: "eventRegistrations",  label: "Event Registrations", icon: ClipboardList },
-  { id: "attendance",          label: "Attendance",          icon: ClipboardCheck },
-  { id: "certificates",        label: "Certificates",        icon: Award },
+  { id: "roles",              label: "Roles",               icon: ShieldCheck,    href: "/dashboard/roles" },
+  { id: "users",              label: "Users",               icon: Users,          href: "/dashboard/users" },
+  { id: "clubs",              label: "Clubs",               icon: Building2,      href: "/dashboard/clubs" },
+  { id: "clubMemberships",    label: "Club Memberships",    icon: UserCheck,      href: "/dashboard/club-membership" },
+  { id: "events",             label: "Events",              icon: CalendarDays,   href: "/dashboard/events" },
+  { id: "eventRegistrations", label: "Event Registrations", icon: ClipboardList,  href: "/dashboard/event-registration" },
+  { id: "attendance",         label: "Attendance",          icon: ClipboardCheck, href: "/dashboard/attendances" },
+  { id: "certificates",       label: "Certificates",        icon: Award,          href: "/dashboard/certificates" },
 ];
