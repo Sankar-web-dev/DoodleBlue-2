@@ -12,7 +12,6 @@ import {
   EyeOff,
   Loader2,
   ArrowRight,
-  Image as ImageIcon,
 } from "lucide-react";
 
 import { authService, AUTH_ME_KEY, getRoleLabel } from "@/api/auth.api";
@@ -67,23 +66,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full lg:grid lg:grid-cols-2 bg-[#FFFFF1]">
-      {/* Left panel: Empty UI placeholder for future logo */}
-      <div className="relative hidden items-center justify-center border-r border-border/60 bg-muted/20 lg:flex">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at center, var(--primary) / 0.12 0, transparent 70%)",
-          }}
-        />
-        <img src="./login.png" alt="Login Image" className="w-full h-full" />
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-8">
-        <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card/95 p-8 shadow-md backdrop-blur sm:p-10">
+    <div className="flex min-h-screen w-full items-center justify-center bg-ambient-mesh px-4 py-10 sm:px-8">
+      <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card/95 p-8 shadow-md backdrop-blur sm:p-10">
           <div className="mb-8 flex flex-col items-center text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/10">
               <GraduationCap className="h-7 w-7" />
@@ -92,7 +76,7 @@ export default function LoginPage() {
               <span className="gradient-text">Welcome back</span>
             </h2>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Sign in to your LMS account to continue
+              Sign in to your account to continue
             </p>
           </div>
 
@@ -172,7 +156,6 @@ export default function LoginPage() {
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Accounts are provisioned by your administrator.
           </p>
-        </div>
       </div>
     </div>
   );
