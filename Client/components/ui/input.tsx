@@ -110,9 +110,8 @@ function FormInput<
       {(label || rightAction) && (
         <div className="mb-2 flex items-center justify-between">
           {label && (
-            <Label htmlFor={inputId}>
+            <Label htmlFor={inputId} required={required}>
               {label}
-              {required && <span className="ml-1 text-destructive">*</span>}
             </Label>
           )}
           {rightAction && <div>{rightAction}</div>}
