@@ -3,13 +3,25 @@ import type { AuthUser, RolePermission } from "@/api/auth.api";
 
 export type Resource =
   | "roles"
-  | "users";
+  | "users"
+  | "clubs"
+  | "clubMemberships"
+  | "events"
+  | "eventRegistrations"
+  | "attendance"
+  | "certificates";
 
 export type Action = "create" | "read" | "update" | "delete";
 
 export const RESOURCE_LABELS: Record<Resource, string> = {
-  roles:       "Roles",
-  users:       "Users",
+  roles:               "Roles",
+  users:               "Users",
+  clubs:               "Clubs",
+  clubMemberships:     "Club Memberships",
+  events:              "Events",
+  eventRegistrations:  "Event Registrations",
+  attendance:          "Attendance",
+  certificates:        "Certificates",
 };
 
 export const ACTION_LABELS: Record<Action, string> = {
@@ -22,6 +34,12 @@ export const ACTION_LABELS: Record<Action, string> = {
 export const ALL_RESOURCES: Resource[] = [
   "roles",
   "users",
+  "clubs",
+  "clubMemberships",
+  "events",
+  "eventRegistrations",
+  "attendance",
+  "certificates",
 ];
 
 export const ALL_ACTIONS: Action[] = ["create", "read", "update", "delete"];

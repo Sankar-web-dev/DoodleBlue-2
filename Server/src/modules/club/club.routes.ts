@@ -1,0 +1,15 @@
+import { Router } from "express";
+import { authenticate, authorize } from "../auth/auth.middleware";
+import * as ClubController from "./club.controller";
+
+const router = Router();
+
+router.use(authenticate);
+
+router.post("/", authorize("clubs", "create"), ClubController.createClub);
+router.get("/", authorize("clubs", "read"), ClubController.listClubs);
+router.get("/:id", authorize("clubs", "read"), ClubController.getClub);
+router.patch("/:id", authorize("clubs", "update"), ClubController.updateClub);
+router.delete("/:id", authorize("clubs", "delete"), ClubController.deleteClub);
+
+export default router;

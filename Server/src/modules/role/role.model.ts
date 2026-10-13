@@ -3,6 +3,12 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export const RESOURCES = [
   "roles",
   "users",
+  "clubs",
+  "clubMemberships",
+  "events",
+  "eventRegistrations",
+  "attendance",
+  "certificates",
 ] as const;
 
 export const ACTIONS = ["create", "read", "update", "delete"] as const;

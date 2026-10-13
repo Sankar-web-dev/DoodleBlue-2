@@ -5,6 +5,12 @@ import { createSessionMiddleware } from "./config/session";
 import authRoutes from "./modules/auth/auth.routes";
 import usersRoutes from "./modules/users/users.routes";
 import roleRoutes from "./modules/role/role.routes";
+import clubRoutes from "./modules/club/club.routes";
+import clubMembershipRoutes from "./modules/club-membership/club-membership.routes";
+import eventRoutes from "./modules/event/event.routes";
+import eventRegistrationRoutes from "./modules/event-registration/event-registration.routes";
+import attendanceRoutes from "./modules/attendance/attendance.routes";
+import certificateRoutes from "./modules/certificate/certificate.routes";
 import { ApiError } from "./lib/ApiError";
 
 export function createApp() {
@@ -43,6 +49,12 @@ export function createApp() {
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/users", usersRoutes);
   app.use("/api/v1/roles", roleRoutes);
+  app.use("/api/v1/clubs", clubRoutes);
+  app.use("/api/v1/club-memberships", clubMembershipRoutes);
+  app.use("/api/v1/events", eventRoutes);
+  app.use("/api/v1/event-registrations", eventRegistrationRoutes);
+  app.use("/api/v1/attendance", attendanceRoutes);
+  app.use("/api/v1/certificates", certificateRoutes);
 
   const errorHandler: ErrorRequestHandler = (
     error,

@@ -9,11 +9,35 @@
 
 export { RESOURCES, ACTIONS } from "../modules/role/role.model.js";
 export { SYSTEM_ROLES } from "../modules/auth/user.model.js";
+export {
+  MEMBERSHIP_ROLES,
+  MEMBERSHIP_STATUSES,
+} from "../modules/club-membership/club-membership.model.js";
+export { EVENT_TYPES, EVENT_STATUSES } from "../modules/event/event.model.js";
+export { REGISTRATION_STATUSES } from "../modules/event-registration/event-registration.model.js";
+export { ATTENDANCE_STATUSES } from "../modules/attendance/attendance.model.js";
+export { CERTIFICATE_STATUSES } from "../modules/certificate/certificate.model.js";
 
 // ─── Re-export types ──────────────────────────────────────────────────────────
 
 export type { Resource, Action, IPermission, IRole } from "../modules/role/role.model.js";
 export type { SystemRole, IUser } from "../modules/auth/user.model.js";
+export type { IClub } from "../modules/club/club.model.js";
+export type {
+  IClubMembership,
+  MembershipRole,
+  MembershipStatus,
+} from "../modules/club-membership/club-membership.model.js";
+export type { IEvent, EventType, EventStatus } from "../modules/event/event.model.js";
+export type {
+  IEventRegistration,
+  RegistrationStatus,
+} from "../modules/event-registration/event-registration.model.js";
+export type { IAttendance, AttendanceStatus } from "../modules/attendance/attendance.model.js";
+export type {
+  ICertificate,
+  CertificateStatus,
+} from "../modules/certificate/certificate.model.js";
 
 // ─── Safe API response types ─────────────────────────────────────────────────
 

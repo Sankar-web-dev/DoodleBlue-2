@@ -1,0 +1,235 @@
+import mongoose from "mongoose";
+import ClubMembership, { IClubMembership } from "./club-membership.model";
+import Club from "../club/club.model";
+import User from "../auth/user.model";
+import { ApiError } from "../../lib/ApiError";
+import type {
+  CreateMembershipBody,
+  UpdateMembershipBody,
+  ListMembershipsQuery,
+} from "./club-membership.validation";
+
+// ── Response shape ────────────────────────────────────────────────────────────
+
+interface LeanMembership {
+  _id: mongoose.Types.ObjectId;
+  clubId: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  membershipRole: string;
+  status: string;
+  assignedBy: mongoose.Types.ObjectId;
+  assignedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+function toResponse(doc: LeanMembership) {
+  return {
+    id: doc._id.toString(),
+    clubId: doc.clubId.toString(),
+    studentId: doc.studentId.toString(),
+    membershipRole: doc.membershipRole,
+    status: doc.status,
+    assignedBy: doc.assignedBy.toString(),
+    assignedAt: doc.assignedAt,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
+// ── Shared lookups (used by event/registration/attendance/certificate services) ─
+
+export async function getActiveMembership(
+  clubId: string,
+  studentId: string
+): Promise<IClubMembership | null> {
+  return ClubMembership.findOne({
+    clubId,
+    studentId,
+    status: "ACTIVE",
+  }).lean() as Promise<IClubMembership | null>;
+}
+
+export async function isActiveMember(
+  clubId: string,
+  studentId: string
+): Promise<boolean> {
+  return (await getActiveMembership(clubId, studentId)) !== null;
+}
+
+export async function isActiveCoordinator(
+  clubId: string,
+  userId: string
+): Promise<boolean> {
+  const doc = await ClubMembership.exists({
+    clubId,
+    studentId: userId,
+    membershipRole: "COORDINATOR",
+    status: "ACTIVE",
+  });
+  return doc !== null;
+}
+
+/**
+ * Demote the club's current ACTIVE coordinator to MEMBER.
+ * At most one exists (partial unique index).
+ */
+async function demoteCurrentCoordinator(clubId: string): Promise<void> {
+  await ClubMembership.findOneAndUpdate(
+    { clubId, membershipRole: "COORDINATOR", status: "ACTIVE" },
+    { $set: { membershipRole: "MEMBER" } }
+  );
+}
+
+// ── createMembership ─────────────────────────────────────────────────────────
+
+export async function createMembership(
+  input: CreateMembershipBody,
+  assignedBy: string
+) {
+  const [club, student] = await Promise.all([
+    Club.findById(input.clubId).select("isActive").lean(),
+    User.findById(input.studentId).select("isActive").lean(),
+  ]);
+
+  if (!club || !club.isActive) {
+    throw new ApiError(400, "INVALID_CLUB", "clubId must reference an active club");
+  }
+  if (!student || !student.isActive) {
+    throw new ApiError(
+      400,
+      "INVALID_STUDENT",
+      "studentId must reference an active user"
+    );
+  }
+
+  const existing = await ClubMembership.findOne({
+    clubId: input.clubId,
+    studentId: input.studentId,
+  });
+
+  if (existing) {
+    throw new ApiError(
+      409,
+      "MEMBERSHIP_EXISTS",
+      "This student is already a member of the club"
+    );
+  }
+
+  // Promoting directly to coordinator demotes the incumbent.
+  if (input.membershipRole === "COORDINATOR") {
+    await demoteCurrentCoordinator(input.clubId);
+  }
+
+  const membership = await ClubMembership.create({
+    clubId: input.clubId,
+    studentId: input.studentId,
+    membershipRole: input.membershipRole ?? "MEMBER",
+    status: "ACTIVE",
+    assignedBy,
+    assignedAt: new Date(),
+  });
+
+  return toResponse(membership.toObject() as LeanMembership);
+}
+
+// ── listMemberships ───────────────────────────────────────────────────────────
+
+export async function listMemberships(query: ListMembershipsQuery) {
+  const { page, limit, clubId, studentId, membershipRole, status } = query;
+
+  const filter: Record<string, unknown> = {};
+  if (clubId) filter.clubId = clubId;
+  if (studentId) filter.studentId = studentId;
+  if (membershipRole) filter.membershipRole = membershipRole;
+  if (status) filter.status = status;
+
+  const [total, docs] = await Promise.all([
+    ClubMembership.countDocuments(filter),
+    ClubMembership.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  return {
+    data: (docs as unknown as LeanMembership[]).map(toResponse),
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
+// ── getMembershipById ─────────────────────────────────────────────────────────
+
+export async function getMembershipById(id: string) {
+  const doc = await ClubMembership.findById(id).lean();
+  if (!doc) {
+    throw new ApiError(404, "MEMBERSHIP_NOT_FOUND", "Membership not found");
+  }
+  return toResponse(doc as unknown as LeanMembership);
+}
+
+// ── updateMembership ──────────────────────────────────────────────────────────
+
+export async function updateMembership(id: string, input: UpdateMembershipBody) {
+  const existing = await ClubMembership.findById(id);
+  if (!existing) {
+    throw new ApiError(404, "MEMBERSHIP_NOT_FOUND", "Membership not found");
+  }
+
+  const set: Record<string, unknown> = {};
+
+  // Promoting to coordinator: must stay an ACTIVE member, and the club's
+  // current coordinator is demoted to MEMBER.
+  if (input.membershipRole === "COORDINATOR") {
+    if (
+      input.status === "INACTIVE" ||
+      (existing.status === "INACTIVE" && input.status === undefined)
+    ) {
+      throw new ApiError(
+        400,
+        "COORDINATOR_MUST_BE_ACTIVE",
+        "A coordinator must be an active member of the club"
+      );
+    }
+    await demoteCurrentCoordinator(existing.clubId.toString());
+    set.membershipRole = "COORDINATOR";
+  } else if (input.membershipRole !== undefined) {
+    set.membershipRole = input.membershipRole;
+  }
+
+  // Deactivating a coordinator also demotes them — a coordinator must be an
+  // active member.
+  if (input.status !== undefined) {
+    set.status = input.status;
+    if (
+      input.status === "INACTIVE" &&
+      (input.membershipRole ?? existing.membershipRole) === "COORDINATOR"
+    ) {
+      set.membershipRole = "MEMBER";
+    }
+  }
+
+  const doc = await ClubMembership.findByIdAndUpdate(
+    id,
+    { $set: set },
+    { new: true, runValidators: true }
+  ).lean();
+
+  return toResponse(doc as unknown as LeanMembership);
+}
+
+// ── deleteMembership ──────────────────────────────────────────────────────────
+
+export async function deleteMembership(id: string) {
+  const membership = await ClubMembership.findById(id);
+  if (!membership) {
+    throw new ApiError(404, "MEMBERSHIP_NOT_FOUND", "Membership not found");
+  }
+  await membership.deleteOne();
+}

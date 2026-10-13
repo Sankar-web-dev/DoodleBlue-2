@@ -114,6 +114,22 @@ export function authorize(resource: Resource, action: Action) {
 }
 
 /**
+ * Non-middleware permission check for service-layer decisions (e.g. scoping
+ * list visibility). Same rule as authorize(): SUPER_ADMIN bypasses.
+ */
+export function hasPermission(
+  user: IUser | undefined,
+  role: IRole | null | undefined,
+  resource: Resource,
+  action: Action
+): boolean {
+  if (!user) return false;
+  if (user.role === "SUPER_ADMIN") return true;
+  const perm = role?.permissions?.find((p) => p.resource === resource);
+  return perm?.actions.includes(action) ?? false;
+}
+
+/**
  * Guards routes that require the user to have changed their temporary password.
  */
 export function requirePasswordChanged(

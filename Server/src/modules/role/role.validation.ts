@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { RESOURCES, ACTIONS } from "./role.model";
 
-const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid id");
-
 // ── Permission entry schema ───────────────────────────────────────────────────
 
 const permissionSchema = z.object({
@@ -53,10 +51,6 @@ export const listRolesQuerySchema = z.object({
     .transform((v) => v === "true")
     .optional(),
 });
-
-// ── :id param ─────────────────────────────────────────────────────────────────
-
-export const roleIdParamSchema = z.object({ id: objectId });
 
 // ── Inferred types ────────────────────────────────────────────────────────────
 
