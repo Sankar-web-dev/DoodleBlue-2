@@ -10,6 +10,15 @@ import type { Club } from "@/api/clubs.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useUsers } from "../../users/_hooks/use-users";
 import {
   createClubAction,
   updateClubAction,
@@ -24,6 +33,14 @@ export function ClubForm({ club }: ClubFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isEdit = !!club;
+
+  const { data: usersData, isLoading: usersLoading } = useUsers({ limit: 100 });
+  const users = usersData?.data ?? [];
+  // Show only active users, but keep the club's current coordinator listed
+  // in edit mode even if their account has since been deactivated.
+  const selectableUsers = users.filter(
+    (u) => u.isActive || (club && u.id === club.facultyCoordinatorId)
+  );
 
   const [name, setName] = useState(club?.name ?? "");
   const [description, setDescription] = useState(club?.description ?? "");
@@ -79,8 +96,8 @@ export function ClubForm({ club }: ClubFormProps) {
       setError("Department is required.");
       return;
     }
-    if (!facultyCoordinatorId.trim()) {
-      setError("Faculty coordinator ID is required.");
+    if (!facultyCoordinatorId) {
+      setError("Please select a faculty coordinator.");
       return;
     }
     if (isEdit) updateMutation.mutate();
@@ -117,15 +134,46 @@ export function ClubForm({ club }: ClubFormProps) {
 
       {/* Faculty coordinator */}
       <div className="space-y-2">
-        <Label htmlFor="club-faculty">Faculty coordinator ID</Label>
-        <Input
-          id="club-faculty"
-          placeholder="User ID of the faculty coordinator"
-          className="h-11 rounded-xl"
+        <Label htmlFor="club-faculty">Faculty coordinator</Label>
+        <Select
           value={facultyCoordinatorId}
-          onChange={(e) => setFacultyCoordinatorId(e.target.value)}
-          disabled={isPending}
-        />
+          onValueChange={(val) => {
+            setFacultyCoordinatorId(val);
+            setError(null);
+          }}
+          disabled={usersLoading || isPending}
+        >
+          <SelectTrigger id="club-faculty" className="h-11 rounded-xl w-full">
+            <SelectValue
+              placeholder={
+                usersLoading ? "Loading users…" : "Choose a faculty coordinator"
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {selectableUsers.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                No users found.
+              </p>
+            ) : (
+              selectableUsers.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  <div className="flex items-center gap-2">
+                    <span>{u.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {u.email}
+                    </span>
+                    {!u.isActive && (
+                      <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                        Inactive
+                      </Badge>
+                    )}
+                  </div>
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Description */}

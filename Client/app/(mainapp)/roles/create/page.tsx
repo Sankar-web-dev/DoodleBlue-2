@@ -1,6 +1,19 @@
+"use client";
+
+import { useAuthUser } from "@/lib/use-auth-user";
+import { usePermissions } from "@/lib/permissions";
+import { ForbiddenState } from "../../_components/forbidden-state";
 import { RoleForm } from "../_components/role-form";
 
 export default function CreateRolePage() {
+  const { user, isPending } = useAuthUser();
+  const { can } = usePermissions(user);
+
+  if (isPending) return null;
+  if (!can("roles", "create")) {
+    return <ForbiddenState message="You don't have permission to create roles." />;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>

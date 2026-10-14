@@ -9,5 +9,8 @@ router.use(authenticate);
 
 router.post("/", authorize("users", "create"), UsersController.createUser);
 router.get("/", authorize("users", "read"), UsersController.listUsers);
+router.get("/:id", authorize("users", "read"), UsersController.getUser);
+router.patch("/:id", authorize("users", "update"), UsersController.updateUser);
+router.delete("/:id", authorize("users", "delete"), UsersController.deleteUser);
 
 export default router;
