@@ -1,11 +1,5 @@
-import React from "react";
+import UsersView from "./_components/user-view";
 
-const page = () => {
-  return (
-    <>
-      <div>users</div>
-    </>
-  );
-};
-
-export default page;
+export default function UsersPage() {
+    return <UsersView />;
+}

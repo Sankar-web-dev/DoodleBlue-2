@@ -3,7 +3,11 @@ import bcrypt from "bcrypt";
 import User, { IUser } from "../auth/user.model";
 import Role from "../role/role.model";
 import { ApiError } from "../../lib/ApiError";
-import type { CreateUserBody, ListUsersQuery } from "./users.validation";
+import type {
+  CreateUserBody,
+  UpdateUserBody,
+  ListUsersQuery,
+} from "./users.validation";
 
 // ── Response shape ────────────────────────────────────────────────────────────
 
@@ -64,16 +68,28 @@ export async function createUser(input: CreateUserBody) {
 
 // ── listUsers ─────────────────────────────────────────────────────────────────
 
-export async function listUsers(query: ListUsersQuery) {
+export async function listUsers(query: ListUsersQuery, currentUser?: IUser) {
   const { search, page, limit } = query;
 
   const filter: Record<string, unknown> = {};
+
+  // SUPER_ADMIN details are never shown to custom-role users
+  if (currentUser?.role !== "SUPER_ADMIN") {
+    filter.role = { $ne: "SUPER_ADMIN" };
+  }
+
   if (search) {
     const safe = escapeRegex(search);
-    filter.$or = [
+    const searchCondition = [
       { name: { $regex: safe, $options: "i" } },
       { email: { $regex: safe, $options: "i" } },
     ];
+    if (filter.role) {
+      filter.$and = [{ role: filter.role }, { $or: searchCondition }];
+      delete filter.role;
+    } else {
+      filter.$or = searchCondition;
+    }
   }
 
   const [total, docs] = await Promise.all([
@@ -93,4 +109,115 @@ export async function listUsers(query: ListUsersQuery) {
       totalPages: Math.ceil(total / limit),
     },
   };
+}
+
+// ── getUserById ───────────────────────────────────────────────────────────────
+
+export async function getUserById(id: string, currentUser?: IUser) {
+  const user = await User.findById(id);
+  if (!user) {
+    throw new ApiError(404, "USER_NOT_FOUND", "User not found");
+  }
+
+  // Non-super admins cannot view super admin details
+  if (user.role === "SUPER_ADMIN" && currentUser?.role !== "SUPER_ADMIN") {
+    throw new ApiError(404, "USER_NOT_FOUND", "User not found");
+  }
+
+  return safeUser(user);
+}
+
+// ── updateUser ────────────────────────────────────────────────────────────────
+
+export async function updateUser(
+  id: string,
+  input: UpdateUserBody,
+  currentUser?: IUser
+) {
+  const user = await User.findById(id);
+  if (!user) {
+    throw new ApiError(404, "USER_NOT_FOUND", "User not found");
+  }
+
+  // Non-super admins cannot edit or view super admin details
+  if (user.role === "SUPER_ADMIN" && currentUser?.role !== "SUPER_ADMIN") {
+    throw new ApiError(404, "USER_NOT_FOUND", "User not found");
+  }
+
+  // Prevent demoting the hardcoded system account
+  if (user.role === "SUPER_ADMIN" && input.roleId) {
+    throw new ApiError(
+      400,
+      "SUPER_ADMIN_ROLE_LOCKED",
+      "The SUPER_ADMIN role cannot be changed"
+    );
+  }
+
+  // Check email uniqueness if email is changed
+  if (input.email && input.email !== user.email) {
+    const taken = await User.exists({
+      email: input.email,
+      _id: { $ne: id },
+    });
+    if (taken) {
+      throw new ApiError(
+        409,
+        "EMAIL_IN_USE",
+        "A user with this email already exists"
+      );
+    }
+    user.email = input.email;
+  }
+
+  if (input.name) {
+    user.name = input.name;
+  }
+
+  if (input.roleId) {
+    const role = await Role.findById(input.roleId).lean();
+    if (!role || !role.isActive) {
+      throw new ApiError(
+        400,
+        "INVALID_ROLE",
+        "roleId must reference an active role"
+      );
+    }
+    user.roleId = new mongoose.Types.ObjectId(input.roleId);
+    user.role = role.name;
+  }
+
+  if (input.password) {
+    user.passwordHash = await bcrypt.hash(input.password, 12);
+    user.mustChangePassword = true;
+  }
+
+  if (input.image !== undefined) {
+    user.image = input.image === null ? undefined : input.image;
+  }
+
+  if (input.isActive !== undefined) {
+    user.isActive = input.isActive;
+  }
+
+  await user.save();
+  return safeUser(user);
+}
+
+// ── deleteUser ────────────────────────────────────────────────────────────────
+
+export async function deleteUser(id: string, currentUser?: IUser) {
+  const user = await User.findById(id);
+  if (!user) {
+    throw new ApiError(404, "USER_NOT_FOUND", "User not found");
+  }
+
+  if (user.role === "SUPER_ADMIN") {
+    throw new ApiError(
+      400,
+      "SUPER_ADMIN_PROTECTED",
+      "SUPER_ADMIN account cannot be deleted"
+    );
+  }
+
+  await user.deleteOne();
 }
