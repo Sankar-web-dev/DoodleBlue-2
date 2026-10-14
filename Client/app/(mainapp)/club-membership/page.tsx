@@ -1,11 +1,5 @@
-import React from "react";
+import { MembershipsView } from "./_components/memberships-view";
 
-const page = () => {
-  return (
-    <>
-      <div>club membership</div>
-    </>
-  );
-};
-
-export default page;
+export default function ClubMembershipPage() {
+  return <MembershipsView />;
+}
