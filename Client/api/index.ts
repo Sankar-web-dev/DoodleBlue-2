@@ -7,3 +7,5 @@
 
 export * from "./auth.api";
 export * from "./roles.api";
+export * from "./clubs.api";
+export * from "./events.api";

@@ -1,11 +1,5 @@
-import React from "react";
+import { EventsView } from "./_components/events-view";
 
-const page = () => {
-  return (
-    <>
-      <div>events</div>
-    </>
-  );
-};
-
-export default page;
+export default function EventsPage() {
+  return <EventsView />;
+}
