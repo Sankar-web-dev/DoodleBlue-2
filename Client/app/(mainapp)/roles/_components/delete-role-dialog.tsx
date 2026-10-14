@@ -24,7 +24,7 @@ export function DeleteRoleDialog({ role, onClose }: DeleteRoleDialogProps) {
 
   return (
     <Dialog open={!!role} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md border-border/70 bg-card">
         <DialogHeader>
           <DialogTitle>Delete &ldquo;{role?.name}&rdquo;?</DialogTitle>
           <DialogDescription>
