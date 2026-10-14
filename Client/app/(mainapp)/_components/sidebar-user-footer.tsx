@@ -1,30 +1,43 @@
 "use client";
 
 import { useState } from "react";
-import { Crown, UserCog, KeyRound } from "lucide-react";
+import { Crown, UserCog } from "lucide-react";
 
+import Link from "next/link";
 import { AuthUser, getRoleLabel } from "@/api/auth.api";
+import { useUser } from "../users/_hooks/use-users";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/ui/logout-button";
 import { SidebarFooter } from "@/components/ui/sidebar";
 import { initials } from "./console-utils";
-import { ChangePasswordDialog } from "./change-password-dialog";
 
-export function SidebarUserFooter({ user }: { user: AuthUser }) {
-  const isSuper = user.role === "SUPER_ADMIN";
+export function SidebarUserFooter({ user: initialUser }: { user: AuthUser }) {
+  const isSuper = initialUser.role === "SUPER_ADMIN";
   const RoleIcon = isSuper ? Crown : UserCog;
-  const [changingPassword, setChangingPassword] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
+
+  // Fetch the full/fresh user data using the useUser hook
+  const { data: userDetail } = useUser(initialUser.id);
+  const user = userDetail?.user ?? initialUser;
+
+  // Normalize image url (handles relative paths like /uploads/...)
+  const imageUrl = user.image && !imgFailed ? user.image : null;
 
   return (
     <SidebarFooter className="mt-auto border-t border-sidebar-border px-4 py-4 group-data-[collapsible=icon]:p-2">
-      <div className="mb-2 flex items-center gap-3 rounded-xl border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-3 group-data-[collapsible=icon]:p-1.5 group-data-[collapsible=icon]:justify-center">
-        {user.image ? (
+      <Link
+        href="/profile"
+        title="View profile"
+        className="mb-2 flex items-center gap-3 rounded-xl border border-sidebar-border/60 bg-sidebar-accent/40 p-2.5 transition-all hover:bg-sidebar-accent/80 hover:border-sidebar-border group-data-[collapsible=icon]:p-1.5 group-data-[collapsible=icon]:justify-center"
+      >
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={user.image}
+            src={imageUrl}
             alt={user.name}
             title={user.name}
             className="h-10 w-10 shrink-0 rounded-full border border-primary/30 object-cover"
+            onError={() => setImgFailed(true)}
           />
         ) : (
           <div
@@ -35,12 +48,12 @@ export function SidebarUserFooter({ user }: { user: AuthUser }) {
           </div>
         )}
         <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-          <p className="truncate text-sm font-semibold">{user.name}</p>
+          <p className="truncate text-sm font-semibold hover:underline">{user.name}</p>
           <p className="truncate text-xs text-muted-foreground">
             {user.email}
           </p>
         </div>
-      </div>
+      </Link>
       <div className="flex flex-col gap-2 group-data-[collapsible=icon]:items-center">
         <Badge
           className={
@@ -54,18 +67,6 @@ export function SidebarUserFooter({ user }: { user: AuthUser }) {
             {getRoleLabel(user.role)}
           </span>
         </Badge>
-        <Button
-          title="Change password"
-          className="w-full justify-start group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
-          variant="outline"
-          size="sm"
-          onClick={() => setChangingPassword(true)}
-        >
-          <KeyRound className="h-4 w-4 group-data-[collapsible=icon]:mr-0 mr-2" />
-          <span className="group-data-[collapsible=icon]:hidden">
-            Change password
-          </span>
-        </Button>
         <LogoutButton
           showIcon
           title="Log out"
@@ -74,10 +75,6 @@ export function SidebarUserFooter({ user }: { user: AuthUser }) {
           size="sm"
         />
       </div>
-      <ChangePasswordDialog
-        open={changingPassword}
-        onClose={() => setChangingPassword(false)}
-      />
     </SidebarFooter>
   );
 }
