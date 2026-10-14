@@ -108,6 +108,65 @@ const DialogDescription = React.forwardRef<
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
 
+const appDialogSizes = {
+  sm: "sm:max-w-md",
+  default: "sm:max-w-lg",
+  lg: "sm:max-w-2xl",
+  xl: "sm:max-w-4xl",
+} as const
+
+export interface AppDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title?: React.ReactNode
+  icon?: React.ReactNode
+  description?: React.ReactNode
+  footer?: React.ReactNode
+  size?: keyof typeof appDialogSizes
+  contentClassName?: string
+  children: React.ReactNode
+}
+
+function AppDialog({
+  open,
+  onOpenChange,
+  title,
+  icon,
+  description,
+  footer,
+  size = "default",
+  contentClassName,
+  children,
+}: AppDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className={cn(
+          "max-h-[90dvh] overflow-y-auto",
+          appDialogSizes[size],
+          contentClassName
+        )}
+      >
+        {(title || description) && (
+          <DialogHeader>
+            {title && (
+              <DialogTitle className="flex items-center gap-2">
+                {icon}
+                {title}
+              </DialogTitle>
+            )}
+            {description && (
+              <DialogDescription>{description}</DialogDescription>
+            )}
+          </DialogHeader>
+        )}
+        {children}
+        {footer && <DialogFooter className="gap-2">{footer}</DialogFooter>}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export {
   Dialog,
   DialogPortal,
@@ -119,4 +178,5 @@ export {
   DialogFooter,
   DialogTitle,
   DialogDescription,
+  AppDialog,
 }
