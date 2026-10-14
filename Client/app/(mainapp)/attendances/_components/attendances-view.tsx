@@ -14,10 +14,16 @@ import {
 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
+import { useQuery } from "@tanstack/react-query";
+
 import type { AttendanceRecord, AttendanceStatus } from "@/api/attendance.api";
 import type { EventRegistration } from "@/api/event-registrations.api";
+import {
+  clubMembershipsApi,
+  MY_MEMBERSHIPS_KEY,
+} from "@/api/club-memberships.api";
 import { useAuthUser } from "@/lib/use-auth-user";
-import { usePermissions } from "@/lib/permissions";
+import { usePermissions, isEventCoordinatorRole } from "@/lib/permissions";
 import { ForbiddenState } from "../../_components/forbidden-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +38,7 @@ import {
 import GenericTable from "@/components/ui/generic-table";
 
 import { useEvents } from "../../events/_hooks/use-events";
+import { useClubs } from "../../club-membership/_hooks/use-memberships";
 import { useRegistrations } from "../../event-registration/_hooks/use-registrations";
 import {
   useAttendance,
@@ -62,13 +69,59 @@ export function AttendancesView() {
   const canCorrect = can("attendance", "update");
   const canManage = canMark || canCorrect;
 
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const isEventCoord = isEventCoordinatorRole(user?.role);
+
   const [eventId, setEventId] = useState("");
 
   // Published events only — non-managers are additionally scoped to their
   // own clubs by the server.
   const eventsQuery = useEvents({ status: "PUBLISHED" });
   const events = eventsQuery.data?.data ?? [];
-  const selectedEvent = events.find((e) => e.id === eventId);
+
+  // Club-staff scope: clubs the user coordinates (membership) or
+  // faculty-coordinates (owned club). The event coordinator role handles
+  // general events instead.
+  const myMemberships = useQuery({
+    queryKey: MY_MEMBERSHIPS_KEY,
+    queryFn: clubMembershipsApi.listMyMemberships,
+    enabled: canManage && !isSuperAdmin,
+    staleTime: 60_000,
+  });
+  const clubsQuery = useClubs();
+
+  const markableEvents = useMemo(() => {
+    if (isSuperAdmin) return events;
+    if (isEventCoord) return events.filter((e) => e.eventType === "GENERAL");
+
+    const coordClubIds = new Set(
+      (myMemberships.data ?? [])
+        .filter(
+          (m) => m.status === "ACTIVE" && m.membershipRole === "COORDINATOR"
+        )
+        .map((m) => m.clubId)
+    );
+    const facultyClubIds = new Set(
+      (clubsQuery.data?.data ?? [])
+        .filter((c) => c.facultyCoordinatorId === user?.id)
+        .map((c) => c.id)
+    );
+    return events.filter(
+      (e) =>
+        e.eventType === "CLUB" &&
+        e.clubId != null &&
+        (coordClubIds.has(e.clubId) || facultyClubIds.has(e.clubId))
+    );
+  }, [
+    events,
+    isSuperAdmin,
+    isEventCoord,
+    myMemberships.data,
+    clubsQuery.data,
+    user?.id,
+  ]);
+
+  const selectedEvent = markableEvents.find((e) => e.id === eventId);
 
   const regsQuery = useRegistrations(
     { eventId },
@@ -364,7 +417,7 @@ export function AttendancesView() {
                 <SelectValue placeholder="Select an event" />
               </SelectTrigger>
               <SelectContent>
-                {events.map((event) => (
+                {markableEvents.map((event) => (
                   <SelectItem key={event.id} value={event.id}>
                     {event.title}
                     {event.eventType === "CLUB" ? " — Club" : " — General"}

@@ -4,6 +4,8 @@ import Event from "../event/event.model";
 import Club from "../club/club.model";
 import EventRegistration from "../event-registration/event-registration.model";
 import { isActiveCoordinator } from "../club-membership/club-membership.service";
+import { managedEventIds } from "../event/event.service";
+import { isEventCoordinator } from "../../lib/roles";
 import { ApiError } from "../../lib/ApiError";
 import type {
   MarkAttendanceBody,
@@ -94,16 +96,27 @@ const ATTENDANCE_POPULATE = [
 ];
 
 /**
- * For club events, the marker must be the club's faculty coordinator, an
- * active student coordinator, or SUPER_ADMIN. General events rely on the
- * route-level attendance:create permission.
+ * Club events: marker must be the club's faculty coordinator, an active
+ * student coordinator, or SUPER_ADMIN. General events are owned by the
+ * EVENT COORDINATOR role (or SUPER_ADMIN).
  */
 async function assertAuthorizedMarker(
   event: { eventType: string; clubId?: mongoose.Types.ObjectId },
   markerId: string,
-  isSuperAdmin: boolean
+  markerRole: string
 ): Promise<void> {
-  if (event.eventType !== "CLUB" || isSuperAdmin) return;
+  if (markerRole === "SUPER_ADMIN") return;
+
+  if (event.eventType === "GENERAL") {
+    if (!isEventCoordinator(markerRole)) {
+      throw new ApiError(
+        403,
+        "NOT_EVENT_COORDINATOR",
+        "Only the event coordinator can mark attendance for general events"
+      );
+    }
+    return;
+  }
 
   const club = await Club.findById(event.clubId)
     .select("facultyCoordinatorId")
@@ -128,14 +141,14 @@ async function assertAuthorizedMarker(
 export async function markAttendance(
   input: MarkAttendanceBody,
   markerId: string,
-  isSuperAdmin: boolean
+  markerRole: string
 ) {
   const event = await Event.findById(input.eventId).lean();
   if (!event) {
     throw new ApiError(404, "EVENT_NOT_FOUND", "Event not found");
   }
 
-  await assertAuthorizedMarker(event, markerId, isSuperAdmin);
+  await assertAuthorizedMarker(event, markerId, markerRole);
 
   // The student must hold a confirmed registration —
   // APPROVED (club) or REGISTERED/APPROVED (general, auto-registered).
@@ -182,16 +195,29 @@ export async function markAttendance(
 export async function listAttendance(
   query: ListAttendanceQuery,
   userId: string,
-  canManage: boolean
+  canManage: boolean,
+  roleName: string
 ) {
   const { page, limit, eventId, studentId, status } = query;
 
   const filter: Record<string, unknown> = {};
   if (eventId) filter.eventId = eventId;
   if (status) filter.status = status;
-  // Non-managers can only see their own attendance records.
-  if (!canManage) filter.studentId = userId;
-  else if (studentId) filter.studentId = studentId;
+  // Non-managers see only their own attendance records. Non-super-admin
+  // managers see records for the events they actually manage — club staff
+  // see their club's events, the event coordinator sees general events.
+  if (!canManage) {
+    filter.studentId = userId;
+  } else {
+    const managed = await managedEventIds(userId, roleName);
+    if (managed !== null) {
+      filter.$or = [
+        { studentId: userId },
+        ...(managed.length > 0 ? [{ eventId: { $in: managed } }] : []),
+      ];
+    }
+    if (studentId) filter.studentId = studentId;
+  }
 
   const [total, docs] = await Promise.all([
     Attendance.countDocuments(filter),
@@ -220,7 +246,7 @@ export async function updateAttendance(
   id: string,
   input: UpdateAttendanceBody,
   markerId: string,
-  isSuperAdmin: boolean
+  markerRole: string
 ) {
   const attendance = await Attendance.findById(id);
   if (!attendance) {
@@ -233,7 +259,7 @@ export async function updateAttendance(
 
   const event = await Event.findById(attendance.eventId).lean();
   if (event) {
-    await assertAuthorizedMarker(event, markerId, isSuperAdmin);
+    await assertAuthorizedMarker(event, markerId, markerRole);
   }
 
   attendance.status = input.status;

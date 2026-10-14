@@ -25,7 +25,7 @@ export async function markAttendance(
   const attendance = await AttendanceService.markAttendance(
     parsed.data,
     currentUser._id.toString(),
-    currentUser.role === "SUPER_ADMIN"
+    currentUser.role
   );
   res.status(201).json({ success: true, data: { attendance } });
 }
@@ -53,7 +53,8 @@ export async function listAttendance(
   const result = await AttendanceService.listAttendance(
     parsed.data,
     currentUser._id.toString(),
-    canManage
+    canManage,
+    currentUser.role
   );
   res.status(200).json({
     success: true,
@@ -81,7 +82,7 @@ export async function updateAttendance(
     id,
     parsed.data,
     currentUser._id.toString(),
-    currentUser.role === "SUPER_ADMIN"
+    currentUser.role
   );
   res.status(200).json({ success: true, data: { attendance } });
 }

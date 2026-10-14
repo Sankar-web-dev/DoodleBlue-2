@@ -31,7 +31,7 @@ export async function requestCertificate(
   const certificate = await CertificateService.requestCertificate(
     parsed.data,
     currentUser._id.toString(),
-    currentUser.role === "SUPER_ADMIN"
+    currentUser.role
   );
   res.status(201).json({ success: true, data: { certificate } });
 }
@@ -51,7 +51,8 @@ export async function listCertificates(
   const result = await CertificateService.listCertificates(
     parsed.data,
     currentUser._id.toString(),
-    canManageCertificates(res)
+    canManageCertificates(res),
+    currentUser.role
   );
   res.status(200).json({
     success: true,
@@ -96,7 +97,7 @@ export async function updateCertificate(
     id,
     parsed.data,
     currentUser._id.toString(),
-    currentUser.role === "SUPER_ADMIN"
+    currentUser.role
   );
   res.status(200).json({ success: true, data: { certificate } });
 }

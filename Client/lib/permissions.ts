@@ -45,6 +45,18 @@ export const ALL_RESOURCES: Resource[] = [
 export const ALL_ACTIONS: Action[] = ["create", "read", "update", "delete"];
 
 /**
+ * True when the user's global role is the EVENT COORDINATOR — the role that
+ * owns attendance and certificates for GENERAL events. Tolerates naming
+ * variants ("Event Coordinator", "EVENT_COORDINATOR", …).
+ */
+export function isEventCoordinatorRole(roleName?: string): boolean {
+  return (
+    (roleName ?? "").trim().toUpperCase().replace(/[\s-]+/g, "_") ===
+    "EVENT_COORDINATOR"
+  );
+}
+
+/**
  * Returns `can(resource, action)` and `canAny(resource)` helpers derived from
  * the authenticated user's permission matrix.
  *

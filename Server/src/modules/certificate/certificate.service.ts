@@ -6,6 +6,8 @@ import Club from "../club/club.model";
 import EventRegistration from "../event-registration/event-registration.model";
 import Attendance from "../attendance/attendance.model";
 import { isActiveCoordinator } from "../club-membership/club-membership.service";
+import { managedEventIds } from "../event/event.service";
+import { isEventCoordinator } from "../../lib/roles";
 import { ApiError } from "../../lib/ApiError";
 import type {
   RequestCertificateBody,
@@ -56,18 +58,29 @@ function generateCertificateNumber(): string {
 }
 
 /**
- * For club events, the actor must be the club's faculty coordinator, an
- * active student coordinator, or SUPER_ADMIN. General events rely on the
- * route-level permission.
+ * Club events: actor must be the club's faculty coordinator, an active
+ * student coordinator (when not facultyOnly), or SUPER_ADMIN. General
+ * events are owned by the EVENT COORDINATOR role (or SUPER_ADMIN).
  */
-async function assertClubActor(
+async function assertEventActor(
   event: { eventType: string; clubId?: mongoose.Types.ObjectId },
   userId: string,
-  isSuperAdmin: boolean,
+  roleName: string,
   opts: { facultyOnly: boolean },
   errorCode: string
 ): Promise<void> {
-  if (event.eventType !== "CLUB" || isSuperAdmin) return;
+  if (roleName === "SUPER_ADMIN") return;
+
+  if (event.eventType === "GENERAL") {
+    if (!isEventCoordinator(roleName)) {
+      throw new ApiError(
+        403,
+        errorCode,
+        "Only the event coordinator can manage certificates for general events"
+      );
+    }
+    return;
+  }
 
   const club = await Club.findById(event.clubId)
     .select("facultyCoordinatorId")
@@ -107,17 +120,17 @@ async function assertClubActor(
 export async function requestCertificate(
   input: RequestCertificateBody,
   requesterId: string,
-  isSuperAdmin: boolean
+  requesterRole: string
 ) {
   const event = await Event.findById(input.eventId).lean();
   if (!event) {
     throw new ApiError(404, "EVENT_NOT_FOUND", "Event not found");
   }
 
-  await assertClubActor(
+  await assertEventActor(
     event,
     requesterId,
-    isSuperAdmin,
+    requesterRole,
     { facultyOnly: false },
     "NOT_EVENT_COORDINATOR"
   );
@@ -170,16 +183,29 @@ export async function requestCertificate(
 export async function listCertificates(
   query: ListCertificatesQuery,
   userId: string,
-  canManage: boolean
+  canManage: boolean,
+  roleName: string
 ) {
   const { page, limit, eventId, studentId, status } = query;
 
   const filter: Record<string, unknown> = {};
   if (eventId) filter.eventId = eventId;
   if (status) filter.status = status;
-  // Non-managers can only see their own certificates.
-  if (!canManage) filter.studentId = userId;
-  else if (studentId) filter.studentId = studentId;
+  // Non-managers see only their own certificates. Non-super-admin managers
+  // see certificates for events they manage — club staff see club events,
+  // the event coordinator sees general events.
+  if (!canManage) {
+    filter.studentId = userId;
+  } else {
+    const managed = await managedEventIds(userId, roleName);
+    if (managed !== null) {
+      filter.$or = [
+        { studentId: userId },
+        ...(managed.length > 0 ? [{ eventId: { $in: managed } }] : []),
+      ];
+    }
+    if (studentId) filter.studentId = studentId;
+  }
 
   const [total, docs] = await Promise.all([
     Certificate.countDocuments(filter),
@@ -225,7 +251,7 @@ export async function updateCertificate(
   id: string,
   input: UpdateCertificateBody,
   actorId: string,
-  isSuperAdmin: boolean
+  actorRole: string
 ) {
   const certificate = await Certificate.findById(id);
   if (!certificate) {
@@ -241,11 +267,12 @@ export async function updateCertificate(
     throw new ApiError(404, "EVENT_NOT_FOUND", "Event not found");
   }
 
-  // Approving / rejecting / issuing is a faculty decision.
-  await assertClubActor(
+  // Approving / rejecting / issuing is a faculty decision for club events;
+  // the event coordinator decides for general events.
+  await assertEventActor(
     event,
     actorId,
-    isSuperAdmin,
+    actorRole,
     { facultyOnly: true },
     "NOT_CLUB_FACULTY"
   );

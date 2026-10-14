@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Event, { IEvent, EventStatus } from "./event.model";
 import Club from "../club/club.model";
 import ClubMembership from "../club-membership/club-membership.model";
+import { isEventCoordinator } from "../../lib/roles";
 import { ApiError } from "../../lib/ApiError";
 import type {
   CreateEventBody,
@@ -163,6 +164,50 @@ export async function listEvents(
       totalPages: Math.ceil(total / limit),
     },
   };
+}
+
+/**
+ * Ids of events the user manages operationally (attendance / certificates):
+ * super admin → null (unrestricted); EVENT COORDINATOR role → all GENERAL
+ * events; club faculty or active student coordinator → that club's events.
+ * Returns [] when the user manages no events.
+ */
+export async function managedEventIds(
+  userId: string,
+  roleName: string
+): Promise<mongoose.Types.ObjectId[] | null> {
+  if (roleName === "SUPER_ADMIN") return null;
+
+  const or: Record<string, unknown>[] = [];
+  if (isEventCoordinator(roleName)) {
+    or.push({ eventType: "GENERAL" });
+  }
+
+  const [facultyClubs, coordinatorMemberships] = await Promise.all([
+    Club.find({ facultyCoordinatorId: userId }).select("_id").lean(),
+    ClubMembership.find({
+      studentId: userId,
+      status: "ACTIVE",
+      membershipRole: "COORDINATOR",
+    })
+      .select("clubId")
+      .lean(),
+  ]);
+  const clubIds = [
+    ...new Set(
+      [...facultyClubs, ...coordinatorMemberships].map((c) =>
+        (c as { _id?: mongoose.Types.ObjectId; clubId?: mongoose.Types.ObjectId })._id?.toString() ??
+        (c as { clubId?: mongoose.Types.ObjectId }).clubId!.toString()
+      )
+    ),
+  ];
+  if (clubIds.length > 0) {
+    or.push({ eventType: "CLUB", clubId: { $in: clubIds } });
+  }
+
+  if (or.length === 0) return [];
+  const events = await Event.find({ $or: or }).select("_id").lean();
+  return events.map((e) => e._id as mongoose.Types.ObjectId);
 }
 
 // ── getEventById ──────────────────────────────────────────────────────────────
