@@ -63,6 +63,56 @@ export function isClubFaculty(
   return club.facultyCoordinatorId.toString() === userId;
 }
 
+/** Clubs the user actively belongs to. */
+async function memberClubIds(userId: string) {
+  const memberships = await ClubMembership.find({
+    studentId: userId,
+    status: "ACTIVE",
+  })
+    .select("clubId")
+    .lean();
+  return memberships.map((m) => m.clubId);
+}
+
+/**
+ * Read scope for non-admins: clubs they coordinate, created, or actively
+ * belong to. Everything else is invisible.
+ */
+async function visibleClubFilter(userId: string) {
+  const memberOf = await memberClubIds(userId);
+  const uid = new mongoose.Types.ObjectId(userId);
+  return {
+    $or: [
+      { facultyCoordinatorId: uid },
+      { createdBy: uid },
+      { _id: { $in: memberOf } },
+    ],
+  };
+}
+
+/** Read check for a single club — same scope as visibleClubFilter. */
+async function assertClubVisible(
+  club: {
+    _id: mongoose.Types.ObjectId;
+    facultyCoordinatorId: mongoose.Types.ObjectId;
+    createdBy: mongoose.Types.ObjectId;
+  },
+  userId: string,
+  isSuperAdmin: boolean
+): Promise<void> {
+  if (isSuperAdmin) return;
+  if (
+    club.facultyCoordinatorId.toString() === userId ||
+    club.createdBy.toString() === userId
+  ) {
+    return;
+  }
+  const memberOf = await memberClubIds(userId);
+  if (memberOf.some((c) => c.toString() === club._id.toString())) return;
+  // 404 not 403 — don't leak the club's existence.
+  throw new ApiError(404, "CLUB_NOT_FOUND", "Club not found");
+}
+
 // ── createClub ────────────────────────────────────────────────────────────────
 
 export async function createClub(input: CreateClubBody, createdBy: string) {
@@ -96,10 +146,17 @@ export async function createClub(input: CreateClubBody, createdBy: string) {
 
 // ── listClubs ─────────────────────────────────────────────────────────────────
 
-export async function listClubs(query: ListClubsQuery) {
+export async function listClubs(
+  query: ListClubsQuery,
+  userId: string,
+  isSuperAdmin: boolean
+) {
   const { page, limit, search, department, isActive } = query;
 
   const filter: Record<string, unknown> = {};
+  if (!isSuperAdmin) {
+    Object.assign(filter, await visibleClubFilter(userId));
+  }
   if (isActive !== undefined) filter.isActive = isActive;
   if (department) {
     filter.department = { $regex: `^${escapeRegex(department)}$`, $options: "i" };
@@ -131,11 +188,20 @@ export async function listClubs(query: ListClubsQuery) {
 
 // ── getClubById ───────────────────────────────────────────────────────────────
 
-export async function getClubById(id: string) {
+export async function getClubById(
+  id: string,
+  userId: string,
+  isSuperAdmin: boolean
+) {
   const doc = await Club.findById(id).lean();
   if (!doc) {
     throw new ApiError(404, "CLUB_NOT_FOUND", "Club not found");
   }
+  await assertClubVisible(
+    doc as unknown as Parameters<typeof assertClubVisible>[0],
+    userId,
+    isSuperAdmin
+  );
   return toResponse(doc as unknown as LeanClub);
 }
 
@@ -144,11 +210,21 @@ export async function getClubById(id: string) {
 export async function updateClub(
   id: string,
   input: UpdateClubBody,
+  userId: string,
   isSuperAdmin: boolean
 ) {
   const existing = await Club.findById(id);
   if (!existing) {
     throw new ApiError(404, "CLUB_NOT_FOUND", "Club not found");
+  }
+
+  // Only the club's own faculty coordinator (or a super admin) may edit it.
+  if (!isSuperAdmin && !isClubFaculty(existing, userId)) {
+    throw new ApiError(
+      403,
+      "NOT_CLUB_FACULTY",
+      "Only the club's faculty coordinator can edit it"
+    );
   }
 
   // Activation status is controlled through the approval flow — only a
@@ -219,10 +295,23 @@ export async function approveClub(id: string) {
 
 // ── deleteClub ────────────────────────────────────────────────────────────────
 
-export async function deleteClub(id: string) {
+export async function deleteClub(
+  id: string,
+  userId: string,
+  isSuperAdmin: boolean
+) {
   const club = await Club.findById(id);
   if (!club) {
     throw new ApiError(404, "CLUB_NOT_FOUND", "Club not found");
+  }
+
+  // Only the club's own faculty coordinator (or a super admin) may delete it.
+  if (!isSuperAdmin && !isClubFaculty(club, userId)) {
+    throw new ApiError(
+      403,
+      "NOT_CLUB_FACULTY",
+      "Only the club's faculty coordinator can delete it"
+    );
   }
 
   const [memberships, events] = await Promise.all([

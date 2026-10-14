@@ -38,7 +38,12 @@ export async function listClubs(
     return;
   }
 
-  const result = await ClubService.listClubs(parsed.data);
+  const currentUser = res.locals.currentUser as IUser;
+  const result = await ClubService.listClubs(
+    parsed.data,
+    currentUser._id.toString(),
+    currentUser.role === "SUPER_ADMIN"
+  );
   res.status(200).json({
     success: true,
     data: result.data,
@@ -54,7 +59,12 @@ export async function getClub(
   const id = parseIdParam(req, res);
   if (!id) return;
 
-  const club = await ClubService.getClubById(id);
+  const currentUser = res.locals.currentUser as IUser;
+  const club = await ClubService.getClubById(
+    id,
+    currentUser._id.toString(),
+    currentUser.role === "SUPER_ADMIN"
+  );
   res.status(200).json({ success: true, data: { club } });
 }
 
@@ -76,6 +86,7 @@ export async function updateClub(
   const club = await ClubService.updateClub(
     id,
     parsed.data,
+    currentUser._id.toString(),
     currentUser.role === "SUPER_ADMIN"
   );
   res.status(200).json({ success: true, data: { club } });
@@ -113,6 +124,11 @@ export async function deleteClub(
   const id = parseIdParam(req, res);
   if (!id) return;
 
-  await ClubService.deleteClub(id);
+  const currentUser = res.locals.currentUser as IUser;
+  await ClubService.deleteClub(
+    id,
+    currentUser._id.toString(),
+    currentUser.role === "SUPER_ADMIN"
+  );
   res.status(200).json({ success: true, data: { message: "Club deleted" } });
 }

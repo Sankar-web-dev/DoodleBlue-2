@@ -97,7 +97,12 @@ export function ClubsView() {
         id: "actions",
         header: () => <span className="sr-only">Actions</span>,
         enableSorting: false,
-        cell: ({ row }) => (
+        cell: ({ row }) => {
+          // Faculty may only edit/delete clubs they coordinate.
+          const isOwner =
+            isSuperAdmin ||
+            row.original.facultyCoordinatorId === user?.id;
+          return (
           <div className="flex items-center justify-end gap-1">
             {isSuperAdmin && !row.original.isActive && (
               <Button
@@ -125,7 +130,7 @@ export function ClubsView() {
               <Eye className="h-3.5 w-3.5 mr-1.5" />
               View details
             </Button>
-            {can("clubs", "update") && (
+            {can("clubs", "update") && isOwner && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -136,7 +141,7 @@ export function ClubsView() {
                 Edit
               </Button>
             )}
-            {can("clubs", "delete") && (
+            {can("clubs", "delete") && isOwner && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -147,10 +152,11 @@ export function ClubsView() {
               </Button>
             )}
           </div>
-        ),
+          );
+        },
       },
     ],
-    [router, can, isSuperAdmin, approveMutation]
+    [router, can, isSuperAdmin, approveMutation, user?.id]
   );
 
   return (
