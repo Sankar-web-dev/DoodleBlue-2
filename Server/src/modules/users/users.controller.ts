@@ -18,8 +18,8 @@ export async function createUser(
     return;
   }
 
-  const user = await UsersService.createUser(parsed.data);
-  res.status(201).json({ success: true, data: { user } });
+  const { user, emailSent } = await UsersService.createUser(parsed.data);
+  res.status(201).json({ success: true, data: { user, emailSent } });
 }
 
 // GET /api/v1/users — list accounts (filterable by search)

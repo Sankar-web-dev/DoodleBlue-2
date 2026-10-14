@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { authenticate, authorize } from "../auth/auth.middleware";
+import {
+  authenticate,
+  authorize,
+  requirePasswordChanged,
+} from "../auth/auth.middleware";
 import * as RoleController from "./role.controller";
 
 // Role management — SUPER_ADMIN only (they own the permission schema).
@@ -7,6 +11,7 @@ import * as RoleController from "./role.controller";
 const router = Router();
 
 router.use(authenticate);
+router.use(requirePasswordChanged);
 
 router.post("/", authorize("roles", "create"), RoleController.createRole);
 router.get("/", authorize("roles", "read"), RoleController.listRoles);

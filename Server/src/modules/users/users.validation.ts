@@ -11,8 +11,11 @@ export const createUserSchema = z
       .trim()
       .email()
       .transform((v) => v.toLowerCase()),
-    /** Temporary password — the user must change it on first login. */
-    password: z.string().min(10).max(128),
+    /**
+     * Optional — when omitted the server generates a temporary password and
+     * emails it to the user. Either way they must change it on first login.
+     */
+    password: z.string().min(10).max(128).optional(),
     /** Must reference an active Role document. */
     roleId: objectId,
     /** Optional profile image URL. */

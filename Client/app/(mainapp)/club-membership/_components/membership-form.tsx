@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { Mail } from "lucide-react";
 
 import { MEMBERSHIPS_LIST_KEY } from "@/api/club-memberships.api";
 import type {
@@ -57,8 +57,6 @@ export function MembershipForm({ membership }: MembershipFormProps) {
   const [clubId, setClubId] = useState(membership?.clubId ?? "");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [membershipRole, setMembershipRole] = useState<MembershipRole>(
     membership?.membershipRole ?? "MEMBER"
   );
@@ -73,15 +71,21 @@ export function MembershipForm({ membership }: MembershipFormProps) {
         clubId,
         name: name.trim(),
         email: email.trim(),
-        password,
         roleId: memberRoleId!,
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: MEMBERSHIPS_LIST_KEY });
       queryClient.invalidateQueries({ queryKey: USERS_LIST_KEY });
-      toast.success("Membership added", {
-        description: `${name.trim()} added to ${selectedClubName}.`,
-      });
+      if (data.emailSent) {
+        toast.success("Membership added", {
+          description: `${name.trim()} added to ${selectedClubName} — login credentials emailed.`,
+        });
+      } else {
+        toast.warning("Membership added — email not sent", {
+          description:
+            "SMTP isn't configured; share credentials with the member manually.",
+        });
+      }
       router.push("/club-membership");
     },
     onError: (err: Error) => setError(err.message),
@@ -116,10 +120,6 @@ export function MembershipForm({ membership }: MembershipFormProps) {
       }
       if (!email.trim()) {
         setError("Email is required.");
-        return;
-      }
-      if (!password || password.length < 10) {
-        setError("Temporary password must be at least 10 characters.");
         return;
       }
       if (!memberRoleId) {
@@ -219,39 +219,12 @@ export function MembershipForm({ membership }: MembershipFormProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="ms-password" required>
-              Temporary password{" "}
-              <span className="text-xs font-normal text-muted-foreground">
-                (min 10 chars)
-              </span>
-            </Label>
-            <div className="relative">
-              <Input
-                id="ms-password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••••"
-                className="h-11 rounded-xl pr-10 font-mono text-sm"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isPending}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                tabIndex={-1}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              The member will be asked to change this on first login.
+          <div className="flex items-start gap-2.5 rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Login credentials are generated automatically and emailed to the
+              member — they&apos;ll be required to set a new password on first
+              sign-in.
             </p>
           </div>
 
