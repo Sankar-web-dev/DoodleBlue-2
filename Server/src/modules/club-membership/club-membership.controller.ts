@@ -46,6 +46,18 @@ export async function listMemberships(
   });
 }
 
+// GET /api/v1/club-memberships/me — the caller's own memberships
+export async function listMyMemberships(
+  req: Request,
+  res: Response
+): Promise<void> {
+  const currentUser = res.locals.currentUser as IUser;
+  const memberships = await MembershipService.listMembershipsForStudent(
+    currentUser._id.toString()
+  );
+  res.status(200).json({ success: true, data: memberships });
+}
+
 // GET /api/v1/club-memberships/:id
 export async function getMembership(
   req: Request,

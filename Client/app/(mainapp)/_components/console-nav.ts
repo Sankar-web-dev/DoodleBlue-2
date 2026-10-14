@@ -20,6 +20,12 @@ export type NavItem = {
    * Omit for items every authenticated user can see (e.g. Dashboard).
    */
   resource?: Resource;
+  /**
+   * Additionally hidden from plain club members — only users with an ACTIVE
+   * coordinator membership (or no club membership at all, e.g. faculty and
+   * admins) see these items. SUPER_ADMIN always sees them.
+   */
+  requiresCoordinator?: boolean;
 };
 
 /**
@@ -35,6 +41,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/club-membership",     label: "Club Memberships",    icon: UserCheck,      resource: "clubMemberships" },
   { href: "/events",              label: "Events",              icon: CalendarDays,   resource: "events" },
   { href: "/event-registration",  label: "Event Registrations", icon: ClipboardList,  resource: "eventRegistrations" },
-  { href: "/attendances",         label: "Attendance",          icon: ClipboardCheck, resource: "attendance" },
-  { href: "/certificates",        label: "Certificates",        icon: Award,          resource: "certificates" },
+  { href: "/attendances",         label: "Attendance",          icon: ClipboardCheck, resource: "attendance",   requiresCoordinator: true },
+  { href: "/certificates",        label: "Certificates",        icon: Award,          resource: "certificates", requiresCoordinator: true },
 ];

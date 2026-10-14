@@ -40,6 +40,10 @@ export interface ListMembershipsParams {
 }
 
 export const clubMembershipsApi = {
+  /** Self-scoped — the caller's own memberships, no permission required. */
+  listMyMemberships: () =>
+    api.get<ClubMembership[]>("/api/v1/club-memberships/me"),
+
   createMembership: (input: CreateMembershipInput) =>
     api.post<{ membership: ClubMembership }>("/api/v1/club-memberships", input),
 
@@ -78,3 +82,4 @@ export const clubMembershipsApi = {
 
 export const clubMembershipsService = clubMembershipsApi;
 export const MEMBERSHIPS_LIST_KEY = ["club-memberships", "list"] as const;
+export const MY_MEMBERSHIPS_KEY = ["club-memberships", "me"] as const;

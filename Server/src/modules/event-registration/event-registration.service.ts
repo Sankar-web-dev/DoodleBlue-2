@@ -15,10 +15,22 @@ import type {
 
 interface LeanRegistration {
   _id: mongoose.Types.ObjectId;
-  eventId: mongoose.Types.ObjectId;
-  studentId: mongoose.Types.ObjectId;
+  eventId:
+    | mongoose.Types.ObjectId
+    | {
+        _id: mongoose.Types.ObjectId;
+        title: string;
+        eventType: string;
+        venue: string;
+        startAt: Date;
+      };
+  studentId:
+    | mongoose.Types.ObjectId
+    | { _id: mongoose.Types.ObjectId; name: string; email: string };
   status: string;
-  reviewedBy?: mongoose.Types.ObjectId;
+  reviewedBy?:
+    | mongoose.Types.ObjectId
+    | { _id: mongoose.Types.ObjectId; name: string };
   reviewedAt?: Date;
   rejectionReason?: string;
   registeredAt: Date;
@@ -26,13 +38,51 @@ interface LeanRegistration {
   updatedAt: Date;
 }
 
+function refId(
+  value: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId }
+) {
+  return value instanceof mongoose.Types.ObjectId
+    ? value.toString()
+    : value._id.toString();
+}
+
+/**
+ * Emits flat ids plus populated display objects so clients don't need extra
+ * /events or /users calls (which require separate permissions).
+ */
 function toResponse(doc: LeanRegistration) {
+  const event = typeof doc.eventId === "object" && "title" in doc.eventId
+    ? {
+        id: doc.eventId._id.toString(),
+        title: doc.eventId.title,
+        eventType: doc.eventId.eventType,
+        venue: doc.eventId.venue,
+        startAt: doc.eventId.startAt,
+      }
+    : undefined;
+  const student = typeof doc.studentId === "object" && "name" in doc.studentId
+    ? {
+        id: doc.studentId._id.toString(),
+        name: doc.studentId.name,
+        email: doc.studentId.email,
+      }
+    : undefined;
+  const reviewer =
+    doc.reviewedBy &&
+    typeof doc.reviewedBy === "object" &&
+    "name" in doc.reviewedBy
+      ? { id: doc.reviewedBy._id.toString(), name: doc.reviewedBy.name }
+      : undefined;
+
   return {
     id: doc._id.toString(),
-    eventId: doc.eventId.toString(),
-    studentId: doc.studentId.toString(),
+    eventId: refId(doc.eventId),
+    studentId: refId(doc.studentId),
+    event,
+    student,
     status: doc.status,
-    reviewedBy: doc.reviewedBy?.toString(),
+    reviewedBy: doc.reviewedBy ? refId(doc.reviewedBy) : undefined,
+    reviewedByUser: reviewer,
     reviewedAt: doc.reviewedAt,
     rejectionReason: doc.rejectionReason,
     registeredAt: doc.registeredAt,
@@ -40,6 +90,12 @@ function toResponse(doc: LeanRegistration) {
     updatedAt: doc.updatedAt,
   };
 }
+
+const REGISTRATION_POPULATE = [
+  { path: "eventId", select: "title eventType venue startAt" },
+  { path: "studentId", select: "name email" },
+  { path: "reviewedBy", select: "name" },
+];
 
 // Seats held by a registration — rejected/cancelled don't consume capacity.
 const ACTIVE_STATUSES = ["REGISTERED", "PENDING", "APPROVED"];
@@ -120,6 +176,7 @@ export async function register(input: CreateRegistrationBody, studentId: string)
     status,
     registeredAt: new Date(),
   });
+  await registration.populate(REGISTRATION_POPULATE);
 
   return toResponse(registration.toObject() as LeanRegistration);
 }
@@ -144,6 +201,7 @@ export async function listRegistrations(
   const [total, docs] = await Promise.all([
     EventRegistration.countDocuments(filter),
     EventRegistration.find(filter)
+      .populate(REGISTRATION_POPULATE)
       .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -168,8 +226,10 @@ export async function getRegistrationById(
   userId: string,
   canManage: boolean
 ) {
-  const doc = await EventRegistration.findById(id).lean();
-  if (!doc || (!canManage && doc.studentId.toString() !== userId)) {
+  const doc = await EventRegistration.findById(id)
+    .populate(REGISTRATION_POPULATE)
+    .lean();
+  if (!doc || (!canManage && refId(doc.studentId as LeanRegistration["studentId"]) !== userId)) {
     throw new ApiError(
       404,
       "REGISTRATION_NOT_FOUND",
@@ -243,6 +303,7 @@ export async function reviewRegistration(
     input.status === "REJECTED" ? input.rejectionReason : undefined;
 
   await registration.save();
+  await registration.populate(REGISTRATION_POPULATE);
   return toResponse(registration.toObject() as LeanRegistration);
 }
 
@@ -279,6 +340,7 @@ export async function cancelRegistration(
 
   registration.status = "CANCELLED";
   await registration.save();
+  await registration.populate(REGISTRATION_POPULATE);
   return toResponse(registration.toObject() as LeanRegistration);
 }
 

@@ -195,6 +195,18 @@ export async function listMemberships(query: ListMembershipsQuery) {
   };
 }
 
+// ── listMyMemberships — the caller's own memberships, any role ────────────────
+
+/** Self-scoped read: lets any user discover their own membership roles. */
+export async function listMembershipsForStudent(studentId: string) {
+  const docs = await ClubMembership.find({ studentId })
+    .populate(MEMBERSHIP_POPULATE)
+    .sort({ createdAt: -1, _id: -1 })
+    .lean();
+
+  return (docs as unknown as LeanMembership[]).map(toResponse);
+}
+
 // ── getMembershipById ─────────────────────────────────────────────────────────
 
 export async function getMembershipById(id: string) {

@@ -16,6 +16,9 @@ router.get(
   authorize("clubMemberships", "read"),
   MembershipController.listMemberships
 );
+// Self-scoped read — no resource permission needed; the caller only ever
+// sees their own memberships. Must precede /:id.
+router.get("/me", MembershipController.listMyMemberships);
 router.get(
   "/:id",
   authorize("clubMemberships", "read"),

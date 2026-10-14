@@ -8,11 +8,10 @@ import {
   SidebarTrigger,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { usePermissions } from "@/lib/permissions";
-import { NAV_ITEMS } from "./_components/console-nav";
 import { SidebarBrand } from "./_components/sidebar-brand";
 import { SidebarNav } from "./_components/sidebar-nav";
 import { SidebarUserFooter } from "./_components/sidebar-user-footer";
+import { useConsoleNav } from "./_components/use-console-nav";
 
 export function ConsoleShell({
   user,
@@ -21,11 +20,7 @@ export function ConsoleShell({
   user: AuthUser;
   children: React.ReactNode;
 }) {
-  const { can } = usePermissions(user);
-  // Ungated items are always visible; gated items need "read" on the resource.
-  const items = NAV_ITEMS.filter(
-    (item) => !item.resource || can(item.resource, "read")
-  );
+  const items = useConsoleNav(user);
 
   return (
     <SidebarProvider>
