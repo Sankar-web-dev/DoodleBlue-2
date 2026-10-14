@@ -5,7 +5,10 @@ import {
   listUsersQuerySchema,
 } from "./users.validation";
 import { sendValidationError, parseIdParam } from "../../lib/validation";
+import { hasPermission } from "../auth/auth.middleware";
 import * as UsersService from "./users.service";
+import { IUser } from "../auth/user.model";
+import { IRole } from "../role/role.model";
 
 // POST /api/v1/users — provision a user account with a role
 export async function createUser(
@@ -40,6 +43,37 @@ export async function listUsers(
     data: result.data,
     meta: result.meta,
   });
+}
+
+// GET /api/v1/users/options — lightweight picker list for forms.
+// Available to anyone who can read users OR manage clubs/memberships —
+// a faculty creating a club shouldn't need full users:read.
+export async function listUserOptions(
+  req: Request,
+  res: Response
+): Promise<void> {
+  const currentUser = res.locals.currentUser as IUser;
+  const role = res.locals.currentRole as IRole | null;
+
+  const allowed =
+    hasPermission(currentUser, role, "users", "read") ||
+    hasPermission(currentUser, role, "clubs", "create") ||
+    hasPermission(currentUser, role, "clubs", "update") ||
+    hasPermission(currentUser, role, "clubMemberships", "create");
+
+  if (!allowed) {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: "FORBIDDEN",
+        message: "You do not have permission to list user options",
+      },
+    });
+    return;
+  }
+
+  const users = await UsersService.listUserOptions(currentUser);
+  res.status(200).json({ success: true, data: users });
 }
 
 // GET /api/v1/users/:id — retrieve single user

@@ -29,6 +29,15 @@ export interface UpdateUserInput {
   isActive?: boolean;
 }
 
+/** Minimal picker shape returned by GET /users/options. */
+export interface UserOption {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+}
+
 export interface ListUsersParams {
   search?: string;
   page?: number;
@@ -36,6 +45,12 @@ export interface ListUsersParams {
 }
 
 export const usersApi = {
+  /**
+   * Lightweight picker list for forms (e.g. choosing a faculty coordinator).
+   * Available to roles that can read users or manage clubs/memberships.
+   */
+  listUserOptions: () => api.get<UserOption[]>("/api/v1/users/options"),
+
   createUser: (input: CreateUserInput) =>
     api.post<{ user: User }>("/api/v1/users", input),
 
@@ -62,3 +77,4 @@ export const usersApi = {
 
 export const usersService = usersApi;
 export const USERS_LIST_KEY = ["users", "list"] as const;
+export const USER_OPTIONS_KEY = ["users", "options"] as const;

@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useUsers } from "../../users/_hooks/use-users";
+import { useUserOptions } from "../../users/_hooks/use-users";
 import {
   createClubAction,
   updateClubAction,
@@ -34,11 +34,12 @@ export function ClubForm({ club }: ClubFormProps) {
   const queryClient = useQueryClient();
   const isEdit = !!club;
 
-  const { data: usersData, isLoading: usersLoading } = useUsers({ limit: 100 });
-  const users = usersData?.data ?? [];
+  const { data: users, isLoading: usersLoading, error: usersError } =
+    useUserOptions();
+  const userList = users ?? [];
   // Show only active users, but keep the club's current coordinator listed
   // in edit mode even if their account has since been deactivated.
-  const selectableUsers = users.filter(
+  const selectableUsers = userList.filter(
     (u) => u.isActive || (club && u.id === club.facultyCoordinatorId)
   );
 
@@ -153,7 +154,7 @@ export function ClubForm({ club }: ClubFormProps) {
           <SelectContent>
             {selectableUsers.length === 0 ? (
               <p className="px-3 py-2 text-sm text-muted-foreground">
-                No users found.
+                {usersError ? "Could not load users." : "No users found."}
               </p>
             ) : (
               selectableUsers.map((u) => (
@@ -174,6 +175,13 @@ export function ClubForm({ club }: ClubFormProps) {
             )}
           </SelectContent>
         </Select>
+        {usersError && (
+          <p className="text-xs text-destructive">
+            {usersError instanceof Error
+              ? usersError.message
+              : "Failed to load users."}
+          </p>
+        )}
       </div>
 
       {/* Description */}

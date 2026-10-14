@@ -39,8 +39,9 @@ interface LeanRegistration {
 }
 
 function refId(
-  value: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId }
+  value: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId } | null
 ) {
+  if (value == null) return "";
   return value instanceof mongoose.Types.ObjectId
     ? value.toString()
     : value._id.toString();
@@ -51,7 +52,8 @@ function refId(
  * /events or /users calls (which require separate permissions).
  */
 function toResponse(doc: LeanRegistration) {
-  const event = typeof doc.eventId === "object" && "title" in doc.eventId
+  // Populated refs are null when the referenced doc no longer exists.
+  const event = doc.eventId && typeof doc.eventId === "object" && "title" in doc.eventId
     ? {
         id: doc.eventId._id.toString(),
         title: doc.eventId.title,
@@ -60,7 +62,7 @@ function toResponse(doc: LeanRegistration) {
         startAt: doc.eventId.startAt,
       }
     : undefined;
-  const student = typeof doc.studentId === "object" && "name" in doc.studentId
+  const student = doc.studentId && typeof doc.studentId === "object" && "name" in doc.studentId
     ? {
         id: doc.studentId._id.toString(),
         name: doc.studentId.name,
@@ -70,6 +72,7 @@ function toResponse(doc: LeanRegistration) {
   const reviewer =
     doc.reviewedBy &&
     typeof doc.reviewedBy === "object" &&
+    doc.reviewedBy !== null &&
     "name" in doc.reviewedBy
       ? { id: doc.reviewedBy._id.toString(), name: doc.reviewedBy.name }
       : undefined;
@@ -181,6 +184,30 @@ export async function register(input: CreateRegistrationBody, studentId: string)
   return toResponse(registration.toObject() as LeanRegistration);
 }
 
+/**
+ * Read-scope helper: the club's faculty coordinator or an active student
+ * coordinator can view that club event's registration roster even without
+ * eventRegistrations:update — same circle that may review and mark
+ * attendance.
+ */
+async function isClubStaffForEvent(
+  eventId: string,
+  userId: string
+): Promise<boolean> {
+  const event = await Event.findById(eventId)
+    .select("eventType clubId")
+    .lean();
+  if (event?.eventType !== "CLUB" || !event.clubId) return false;
+
+  const club = await Club.findById(event.clubId)
+    .select("facultyCoordinatorId")
+    .lean();
+  return (
+    club?.facultyCoordinatorId.toString() === userId ||
+    (await isActiveCoordinator(event.clubId.toString(), userId))
+  );
+}
+
 // ── listRegistrations ─────────────────────────────────────────────────────────
 
 export async function listRegistrations(
@@ -194,9 +221,19 @@ export async function listRegistrations(
   if (eventId) filter.eventId = eventId;
   if (status) filter.status = status;
 
-  // Non-managers can only see their own registrations; managers see all.
-  if (!canManage) filter.studentId = userId;
-  else if (studentId) filter.studentId = studentId;
+  // Non-managers see only their own registrations — except club staff
+  // (coordinator / faculty) viewing their own club event's roster.
+  if (!canManage) {
+    const canViewClubRoster =
+      !!eventId && (await isClubStaffForEvent(eventId, userId));
+    if (canViewClubRoster) {
+      if (studentId) filter.studentId = studentId;
+    } else {
+      filter.studentId = userId;
+    }
+  } else if (studentId) {
+    filter.studentId = studentId;
+  }
 
   const [total, docs] = await Promise.all([
     EventRegistration.countDocuments(filter),

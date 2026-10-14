@@ -24,8 +24,9 @@ interface LeanMembership {
 }
 
 function refId(
-  value: LeanMembership["clubId"] | LeanMembership["assignedBy"]
+  value: LeanMembership["clubId"] | LeanMembership["assignedBy"] | null
 ) {
+  if (value == null) return "";
   return value instanceof mongoose.Types.ObjectId
     ? value.toString()
     : value._id.toString();
@@ -36,13 +37,14 @@ function refId(
  * /users or /clubs calls (which require separate permissions).
  */
 function toResponse(doc: LeanMembership) {
-  const club = typeof doc.clubId === "object" && "name" in doc.clubId
+  // Populated refs are null when the referenced doc no longer exists.
+  const club = doc.clubId && typeof doc.clubId === "object" && "name" in doc.clubId
     ? { id: doc.clubId._id.toString(), name: doc.clubId.name, department: doc.clubId.department }
     : undefined;
-  const student = typeof doc.studentId === "object" && "name" in doc.studentId
+  const student = doc.studentId && typeof doc.studentId === "object" && "name" in doc.studentId
     ? { id: doc.studentId._id.toString(), name: doc.studentId.name, email: doc.studentId.email }
     : undefined;
-  const assigner = typeof doc.assignedBy === "object" && "name" in doc.assignedBy
+  const assigner = doc.assignedBy && typeof doc.assignedBy === "object" && "name" in doc.assignedBy
     ? { id: doc.assignedBy._id.toString(), name: doc.assignedBy.name }
     : undefined;
 

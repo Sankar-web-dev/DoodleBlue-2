@@ -111,6 +111,34 @@ export async function listUsers(query: ListUsersQuery, currentUser?: IUser) {
   };
 }
 
+// ── listUserOptions ───────────────────────────────────────────────────────────
+
+/**
+ * Minimal picker data (id/name/email/role) for forms that need to reference
+ * users — e.g. choosing a faculty coordinator when creating a club.
+ * Restricted to active users; SUPER_ADMIN accounts are never exposed to
+ * custom-role callers.
+ */
+export async function listUserOptions(currentUser?: IUser) {
+  const filter: Record<string, unknown> = { isActive: true };
+  if (currentUser?.role !== "SUPER_ADMIN") {
+    filter.role = { $ne: "SUPER_ADMIN" };
+  }
+
+  const docs = await User.find(filter)
+    .select("name email role isActive")
+    .sort({ name: 1 })
+    .lean();
+
+  return docs.map((u) => ({
+    id: u._id.toString(),
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    isActive: u.isActive,
+  }));
+}
+
 // ── getUserById ───────────────────────────────────────────────────────────────
 
 export async function getUserById(id: string, currentUser?: IUser) {

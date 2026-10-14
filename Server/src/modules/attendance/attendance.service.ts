@@ -37,8 +37,9 @@ interface LeanAttendance {
 }
 
 function refId(
-  value: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId }
+  value: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId } | null
 ) {
+  if (value == null) return "";
   return value instanceof mongoose.Types.ObjectId
     ? value.toString()
     : value._id.toString();
@@ -49,7 +50,8 @@ function refId(
  * /events or /users calls (which require separate permissions).
  */
 function toResponse(doc: LeanAttendance) {
-  const event = typeof doc.eventId === "object" && "title" in doc.eventId
+  // Populated refs are null when the referenced doc no longer exists.
+  const event = doc.eventId && typeof doc.eventId === "object" && "title" in doc.eventId
     ? {
         id: doc.eventId._id.toString(),
         title: doc.eventId.title,
@@ -58,7 +60,7 @@ function toResponse(doc: LeanAttendance) {
         startAt: doc.eventId.startAt,
       }
     : undefined;
-  const student = typeof doc.studentId === "object" && "name" in doc.studentId
+  const student = doc.studentId && typeof doc.studentId === "object" && "name" in doc.studentId
     ? {
         id: doc.studentId._id.toString(),
         name: doc.studentId.name,
@@ -66,7 +68,7 @@ function toResponse(doc: LeanAttendance) {
       }
     : undefined;
   const marker =
-    typeof doc.markedBy === "object" && "name" in doc.markedBy
+    doc.markedBy && typeof doc.markedBy === "object" && "name" in doc.markedBy
       ? { id: doc.markedBy._id.toString(), name: doc.markedBy.name }
       : undefined;
 

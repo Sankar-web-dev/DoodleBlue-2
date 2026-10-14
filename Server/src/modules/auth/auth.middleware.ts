@@ -107,7 +107,7 @@ export function authorize(resource: Resource, action: Action) {
       success: false,
       error: {
         code: "FORBIDDEN",
-        message: "You do not have permission to perform this action",
+        message: `Missing permission: ${resource}:${action}`,
       },
     });
   };
