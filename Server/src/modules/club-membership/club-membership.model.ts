@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export const MEMBERSHIP_ROLES = ["MEMBER", "COORDINATOR"] as const;
-export const MEMBERSHIP_STATUSES = ["ACTIVE", "INACTIVE"] as const;
+export const MEMBERSHIP_STATUSES = ["PENDING", "ACTIVE", "INACTIVE"] as const;
 
 export type MembershipRole = (typeof MEMBERSHIP_ROLES)[number];
 export type MembershipStatus = (typeof MEMBERSHIP_STATUSES)[number];
@@ -9,6 +9,9 @@ export type MembershipStatus = (typeof MEMBERSHIP_STATUSES)[number];
 /**
  * Records a student's relationship with a specific club — plain membership
  * or student-coordinator responsibility. Not part of RBAC.
+ *
+ * New memberships start PENDING — a SUPER_ADMIN must approve them before
+ * they become ACTIVE.
  *
  * Invariants enforced at the service layer:
  *  - at most one ACTIVE coordinator per club;

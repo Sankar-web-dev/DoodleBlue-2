@@ -72,7 +72,36 @@ export async function updateMembership(
     return;
   }
 
-  const membership = await MembershipService.updateMembership(id, parsed.data);
+  const currentUser = res.locals.currentUser as IUser;
+  const membership = await MembershipService.updateMembership(
+    id,
+    parsed.data,
+    currentUser.role === "SUPER_ADMIN"
+  );
+  res.status(200).json({ success: true, data: { membership } });
+}
+
+// PATCH /api/v1/club-memberships/:id/approve — SUPER_ADMIN only
+export async function approveMembership(
+  req: Request,
+  res: Response
+): Promise<void> {
+  const currentUser = res.locals.currentUser as IUser;
+  if (currentUser.role !== "SUPER_ADMIN") {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: "FORBIDDEN",
+        message: "Only a super admin can approve memberships",
+      },
+    });
+    return;
+  }
+
+  const id = parseIdParam(req, res);
+  if (!id) return;
+
+  const membership = await MembershipService.approveMembership(id);
   res.status(200).json({ success: true, data: { membership } });
 }
 

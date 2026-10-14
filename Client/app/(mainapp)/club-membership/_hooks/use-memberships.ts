@@ -34,6 +34,18 @@ export function useDeleteMembership(onSuccess?: () => void) {
   });
 }
 
+/** SUPER_ADMIN only — approve a pending membership. */
+export function useApproveMembership(onSuccess?: () => void) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => clubMembershipsApi.approveMembership(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MEMBERSHIPS_LIST_KEY });
+      onSuccess?.();
+    },
+  });
+}
+
 export function useClubs() {
   return useQuery({
     queryKey: CLUBS_LIST_KEY,

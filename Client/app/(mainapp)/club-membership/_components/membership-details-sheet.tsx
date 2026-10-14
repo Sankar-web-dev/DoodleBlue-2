@@ -1,6 +1,6 @@
 "use client";
 
-import { UserCheck, CheckCircle2, XCircle, Building2 } from "lucide-react";
+import { UserCheck, Building2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,6 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import type { MembershipRow } from "../_hooks/use-memberships";
+import { MembershipStatusBadge } from "./membership-status-badge";
 
 interface MembershipDetailsSheetProps {
   membership: MembershipRow | null;
@@ -55,20 +56,7 @@ export function MembershipDetailsSheet({
                   ? "Coordinator"
                   : "Member"}
               </Badge>
-              <Badge
-                className={
-                  membership.status === "ACTIVE"
-                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs"
-                    : "bg-muted text-muted-foreground border-border/40 text-xs"
-                }
-              >
-                {membership.status === "ACTIVE" ? (
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                ) : (
-                  <XCircle className="h-3 w-3 mr-1" />
-                )}
-                {membership.status === "ACTIVE" ? "Active" : "Inactive"}
-              </Badge>
+              <MembershipStatusBadge status={membership.status} />
             </div>
 
             <Separator className="my-5" />

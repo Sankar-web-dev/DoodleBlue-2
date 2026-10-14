@@ -80,6 +80,8 @@ export function EventsView() {
   const canCreate = can("events", "create");
   const canUpdate = can("events", "update");
   const canDelete = can("events", "delete");
+  // Approve / reject / publish are SUPER_ADMIN decisions on the server.
+  const isSuperAdmin = me?.user?.role === "SUPER_ADMIN";
 
   const { data, isPending, error, refetch } = useEvents();
   const events = data?.data ?? [];
@@ -158,8 +160,8 @@ export function EventsView() {
           const event = row.original;
           const editable = !["PUBLISHED", "CANCELLED"].includes(event.status);
           const submittable = ["DRAFT", "REJECTED"].includes(event.status);
-          const reviewable = event.status === "PENDING";
-          const publishable = event.status === "APPROVED";
+          const reviewable = event.status === "PENDING" && isSuperAdmin;
+          const publishable = event.status === "APPROVED" && isSuperAdmin;
           const cancellable = [
             "DRAFT",
             "PENDING",
@@ -268,7 +270,7 @@ export function EventsView() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [router, canUpdate, canDelete]
+    [router, canUpdate, canDelete, isSuperAdmin]
   );
 
   return (

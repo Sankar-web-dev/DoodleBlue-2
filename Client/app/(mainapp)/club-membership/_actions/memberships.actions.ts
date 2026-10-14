@@ -49,6 +49,11 @@ export async function updateMembershipAction(
   return clubMembershipsApi.updateMembership(id, { membershipRole, status });
 }
 
+/** SUPER_ADMIN only — approve a pending membership. */
+export async function approveMembershipAction(id: string) {
+  return clubMembershipsApi.approveMembership(id);
+}
+
 export async function deleteMembershipAction(id: string) {
   return clubMembershipsApi.deleteMembership(id);
 }

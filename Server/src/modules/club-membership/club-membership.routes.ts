@@ -22,6 +22,11 @@ router.get(
   MembershipController.getMembership
 );
 router.patch(
+  "/:id/approve",
+  authorize("clubMemberships", "update"),
+  MembershipController.approveMembership
+);
+router.patch(
   "/:id",
   authorize("clubMemberships", "update"),
   MembershipController.updateMembership

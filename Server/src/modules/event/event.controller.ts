@@ -17,6 +17,26 @@ function canManageEvents(res: Response): boolean {
   return hasPermission(user, role, "events", "update");
 }
 
+/**
+ * Approval-side transitions (approve / reject / publish) are SUPER_ADMIN
+ * decisions — the events:update permission alone is not enough, since
+ * faculty need it to create and submit their own events.
+ */
+function requireSuperAdmin(res: Response, action: string): boolean {
+  const currentUser = res.locals.currentUser as IUser;
+  if (currentUser.role !== "SUPER_ADMIN") {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: "FORBIDDEN",
+        message: `Only a super admin can ${action} events`,
+      },
+    });
+    return false;
+  }
+  return true;
+}
+
 // POST /api/v1/events
 export async function createEvent(
   req: Request,
@@ -107,11 +127,13 @@ export async function submitEvent(
   res.status(200).json({ success: true, data: { event } });
 }
 
-// POST /api/v1/events/:id/approve — PENDING → APPROVED
+// POST /api/v1/events/:id/approve — PENDING → APPROVED (SUPER_ADMIN only)
 export async function approveEvent(
   req: Request,
   res: Response
 ): Promise<void> {
+  if (!requireSuperAdmin(res, "approve")) return;
+
   const id = parseIdParam(req, res);
   if (!id) return;
 
@@ -123,11 +145,13 @@ export async function approveEvent(
   res.status(200).json({ success: true, data: { event } });
 }
 
-// POST /api/v1/events/:id/reject — PENDING → REJECTED
+// POST /api/v1/events/:id/reject — PENDING → REJECTED (SUPER_ADMIN only)
 export async function rejectEvent(
   req: Request,
   res: Response
 ): Promise<void> {
+  if (!requireSuperAdmin(res, "reject")) return;
+
   const id = parseIdParam(req, res);
   if (!id) return;
 
@@ -144,11 +168,13 @@ export async function rejectEvent(
   res.status(200).json({ success: true, data: { event } });
 }
 
-// POST /api/v1/events/:id/publish — APPROVED → PUBLISHED
+// POST /api/v1/events/:id/publish — APPROVED → PUBLISHED (SUPER_ADMIN only)
 export async function publishEvent(
   req: Request,
   res: Response
 ): Promise<void> {
+  if (!requireSuperAdmin(res, "publish")) return;
+
   const id = parseIdParam(req, res);
   if (!id) return;
 

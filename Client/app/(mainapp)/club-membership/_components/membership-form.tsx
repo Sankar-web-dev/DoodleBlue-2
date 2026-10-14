@@ -263,7 +263,8 @@ export function MembershipForm({ membership }: MembershipFormProps) {
             </div>
             <p className="text-xs text-muted-foreground">
               Members always join as a regular member — promote them to
-              coordinator later from Edit.
+              coordinator later from Edit. New memberships stay pending until
+              a super admin approves them.
             </p>
           </div>
         </>
@@ -306,10 +307,17 @@ export function MembershipForm({ membership }: MembershipFormProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="INACTIVE">Inactive</SelectItem>
               </SelectContent>
             </Select>
+            {status === "PENDING" && (
+              <p className="text-xs text-muted-foreground">
+                Pending memberships must be approved by a super admin before
+                the member is active.
+              </p>
+            )}
             {status === "INACTIVE" && membershipRole === "COORDINATOR" && (
               <p className="text-xs text-muted-foreground">
                 Deactivating a coordinator also demotes them to member.

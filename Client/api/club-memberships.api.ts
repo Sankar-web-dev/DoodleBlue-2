@@ -1,7 +1,7 @@
 import { api, PaginationMeta } from "@/lib/api";
 
 export type MembershipRole = "MEMBER" | "COORDINATOR";
-export type MembershipStatus = "ACTIVE" | "INACTIVE";
+export type MembershipStatus = "PENDING" | "ACTIVE" | "INACTIVE";
 
 export interface ClubMembership {
   id: string;
@@ -47,6 +47,12 @@ export const clubMembershipsApi = {
     api.patch<{ membership: ClubMembership }>(
       `/api/v1/club-memberships/${id}`,
       input
+    ),
+
+  /** SUPER_ADMIN only — PENDING → ACTIVE. */
+  approveMembership: (id: string) =>
+    api.patch<{ membership: ClubMembership }>(
+      `/api/v1/club-memberships/${id}/approve`
     ),
 
   deleteMembership: (id: string) =>

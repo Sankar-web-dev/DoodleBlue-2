@@ -147,16 +147,14 @@ export async function createMembership(
     );
   }
 
-  // Promoting directly to coordinator demotes the incumbent.
-  if (input.membershipRole === "COORDINATOR") {
-    await demoteCurrentCoordinator(input.clubId);
-  }
-
+  // New memberships start PENDING — a SUPER_ADMIN approves them before they
+  // become ACTIVE. A pending coordinator nomination does not demote the
+  // incumbent until it is approved.
   const membership = await ClubMembership.create({
     clubId: input.clubId,
     studentId: input.studentId,
     membershipRole: input.membershipRole ?? "MEMBER",
-    status: "ACTIVE",
+    status: "PENDING",
     assignedBy,
     assignedAt: new Date(),
   });
@@ -211,43 +209,63 @@ export async function getMembershipById(id: string) {
 
 // ── updateMembership ──────────────────────────────────────────────────────────
 
-export async function updateMembership(id: string, input: UpdateMembershipBody) {
+export async function updateMembership(
+  id: string,
+  input: UpdateMembershipBody,
+  isSuperAdmin: boolean
+) {
   const existing = await ClubMembership.findById(id);
   if (!existing) {
     throw new ApiError(404, "MEMBERSHIP_NOT_FOUND", "Membership not found");
   }
 
-  const set: Record<string, unknown> = {};
-
-  // Promoting to coordinator: must stay an ACTIVE member, and the club's
-  // current coordinator is demoted to MEMBER.
-  if (input.membershipRole === "COORDINATOR") {
-    if (
-      input.status === "INACTIVE" ||
-      (existing.status === "INACTIVE" && input.status === undefined)
-    ) {
-      throw new ApiError(
-        400,
-        "COORDINATOR_MUST_BE_ACTIVE",
-        "A coordinator must be an active member of the club"
-      );
-    }
-    await demoteCurrentCoordinator(existing.clubId.toString());
-    set.membershipRole = "COORDINATOR";
-  } else if (input.membershipRole !== undefined) {
-    set.membershipRole = input.membershipRole;
+  // Approving or reopening a PENDING membership is a SUPER_ADMIN decision —
+  // everyone else may only change member/coordinator roles and toggle
+  // ACTIVE ↔ INACTIVE.
+  if (
+    input.status !== undefined &&
+    input.status !== existing.status &&
+    (existing.status === "PENDING" || input.status === "PENDING") &&
+    !isSuperAdmin
+  ) {
+    throw new ApiError(
+      403,
+      "FORBIDDEN",
+      "Only a super admin can approve or reopen a pending membership"
+    );
   }
+
+  const resultingRole = input.membershipRole ?? existing.membershipRole;
+  const resultingStatus = input.status ?? existing.status;
+
+  // A coordinator must end up ACTIVE or PENDING — never INACTIVE.
+  if (resultingRole === "COORDINATOR" && resultingStatus === "INACTIVE") {
+    throw new ApiError(
+      400,
+      "COORDINATOR_MUST_BE_ACTIVE",
+      "A coordinator must be an active member of the club"
+    );
+  }
+
+  // Promoting to ACTIVE coordinator demotes the club's incumbent. A PENDING
+  // nomination takes effect only when it is approved.
+  if (
+    resultingRole === "COORDINATOR" &&
+    resultingStatus === "ACTIVE" &&
+    !(existing.membershipRole === "COORDINATOR" && existing.status === "ACTIVE")
+  ) {
+    await demoteCurrentCoordinator(existing.clubId.toString());
+  }
+
+  const set: Record<string, unknown> = { membershipRole: resultingRole };
 
   // Deactivating a coordinator also demotes them — a coordinator must be an
   // active member.
+  if (resultingStatus === "INACTIVE") {
+    set.membershipRole = "MEMBER";
+  }
   if (input.status !== undefined) {
     set.status = input.status;
-    if (
-      input.status === "INACTIVE" &&
-      (input.membershipRole ?? existing.membershipRole) === "COORDINATOR"
-    ) {
-      set.membershipRole = "MEMBER";
-    }
   }
 
   const doc = await ClubMembership.findByIdAndUpdate(
@@ -259,6 +277,33 @@ export async function updateMembership(id: string, input: UpdateMembershipBody) 
     .lean();
 
   return toResponse(doc as unknown as LeanMembership);
+}
+
+// ── approveMembership — SUPER_ADMIN only (enforced in the controller) ─────────
+
+export async function approveMembership(id: string) {
+  const existing = await ClubMembership.findById(id);
+  if (!existing) {
+    throw new ApiError(404, "MEMBERSHIP_NOT_FOUND", "Membership not found");
+  }
+  if (existing.status !== "PENDING") {
+    throw new ApiError(
+      409,
+      "MEMBERSHIP_NOT_PENDING",
+      "Only pending memberships can be approved"
+    );
+  }
+
+  // Approving a coordinator nominee demotes the club's incumbent.
+  if (existing.membershipRole === "COORDINATOR") {
+    await demoteCurrentCoordinator(existing.clubId.toString());
+  }
+
+  existing.status = "ACTIVE";
+  await existing.save();
+  await existing.populate(MEMBERSHIP_POPULATE);
+
+  return toResponse(existing.toObject() as LeanMembership);
 }
 
 // ── deleteMembership ──────────────────────────────────────────────────────────

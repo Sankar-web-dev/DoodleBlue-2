@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Plus,
   UserCheck,
@@ -13,7 +14,6 @@ import {
   Pencil,
   Trash2,
   CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -26,8 +26,13 @@ import { useAuthUser } from "@/lib/use-auth-user";
 import { usePermissions } from "@/lib/permissions";
 import { ForbiddenState } from "../../_components/forbidden-state";
 
-import { useMembershipRows, type MembershipRow } from "../_hooks/use-memberships";
+import {
+  useMembershipRows,
+  useApproveMembership,
+  type MembershipRow,
+} from "../_hooks/use-memberships";
 import { MembershipDetailsSheet } from "./membership-details-sheet";
+import { MembershipStatusBadge } from "./membership-status-badge";
 import { DeleteMembershipDialog } from "./delete-membership-dialog";
 
 export function MembershipsView() {
@@ -41,6 +46,10 @@ export function MembershipsView() {
     useState<MembershipRow | null>(null);
 
   const { data, isPending, error, refetch } = useMembershipRows();
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const approveMutation = useApproveMembership(() =>
+    toast.success("Membership approved")
+  );
 
   const columns = useMemo<ColumnDef<MembershipRow, unknown>[]>(
     () => [
@@ -103,20 +112,7 @@ export function MembershipsView() {
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => (
-          <Badge
-            className={
-              row.original.status === "ACTIVE"
-                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs"
-                : "bg-muted text-muted-foreground border-border/40 text-xs"
-            }
-          >
-            {row.original.status === "ACTIVE" ? (
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-            ) : (
-              <XCircle className="h-3 w-3 mr-1" />
-            )}
-            {row.original.status === "ACTIVE" ? "Active" : "Inactive"}
-          </Badge>
+          <MembershipStatusBadge status={row.original.status} />
         ),
       },
       {
@@ -143,6 +139,27 @@ export function MembershipsView() {
               <Eye className="h-3.5 w-3.5 mr-1.5" />
               View details
             </Button>
+            {isSuperAdmin && row.original.status === "PENDING" && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
+                disabled={approveMutation.isPending}
+                onClick={() =>
+                  approveMutation.mutate(row.original.id, {
+                    onError: (err) =>
+                      toast.error(
+                        err instanceof Error
+                          ? err.message
+                          : "Approval failed"
+                      ),
+                  })
+                }
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                Approve
+              </Button>
+            )}
             {can("clubMemberships", "update") && (
               <Button
                 size="sm"
@@ -170,7 +187,7 @@ export function MembershipsView() {
         ),
       },
     ],
-    [router, can]
+    [router, can, isSuperAdmin, approveMutation]
   );
 
   if (userPending) return null;
@@ -245,6 +262,7 @@ export function MembershipsView() {
               { label: "Coordinator", value: "COORDINATOR" },
             ],
             [
+              { label: "Pending", value: "PENDING" },
               { label: "Active", value: "ACTIVE" },
               { label: "Inactive", value: "INACTIVE" },
             ],
