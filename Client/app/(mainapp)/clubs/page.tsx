@@ -1,11 +1,5 @@
-import React from "react";
+import { ClubsView } from "./_components/clubs-view";
 
-const page = () => {
-  return (
-    <>
-      <div>clubs</div>
-    </>
-  );
-};
-
-export default page;
+export default function ClubsPage() {
+  return <ClubsView />;
+}
