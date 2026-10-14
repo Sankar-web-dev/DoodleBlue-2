@@ -15,27 +15,81 @@ import type {
 
 interface LeanAttendance {
   _id: mongoose.Types.ObjectId;
-  eventId: mongoose.Types.ObjectId;
-  studentId: mongoose.Types.ObjectId;
-  markedBy: mongoose.Types.ObjectId;
+  eventId:
+    | mongoose.Types.ObjectId
+    | {
+        _id: mongoose.Types.ObjectId;
+        title: string;
+        eventType: string;
+        venue: string;
+        startAt: Date;
+      };
+  studentId:
+    | mongoose.Types.ObjectId
+    | { _id: mongoose.Types.ObjectId; name: string; email: string };
+  markedBy:
+    | mongoose.Types.ObjectId
+    | { _id: mongoose.Types.ObjectId; name: string };
   status: string;
   markedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
+function refId(
+  value: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId }
+) {
+  return value instanceof mongoose.Types.ObjectId
+    ? value.toString()
+    : value._id.toString();
+}
+
+/**
+ * Emits flat ids plus populated display objects so clients don't need extra
+ * /events or /users calls (which require separate permissions).
+ */
 function toResponse(doc: LeanAttendance) {
+  const event = typeof doc.eventId === "object" && "title" in doc.eventId
+    ? {
+        id: doc.eventId._id.toString(),
+        title: doc.eventId.title,
+        eventType: doc.eventId.eventType,
+        venue: doc.eventId.venue,
+        startAt: doc.eventId.startAt,
+      }
+    : undefined;
+  const student = typeof doc.studentId === "object" && "name" in doc.studentId
+    ? {
+        id: doc.studentId._id.toString(),
+        name: doc.studentId.name,
+        email: doc.studentId.email,
+      }
+    : undefined;
+  const marker =
+    typeof doc.markedBy === "object" && "name" in doc.markedBy
+      ? { id: doc.markedBy._id.toString(), name: doc.markedBy.name }
+      : undefined;
+
   return {
     id: doc._id.toString(),
-    eventId: doc.eventId.toString(),
-    studentId: doc.studentId.toString(),
-    markedBy: doc.markedBy.toString(),
+    eventId: refId(doc.eventId),
+    studentId: refId(doc.studentId),
+    markedBy: refId(doc.markedBy),
+    event,
+    student,
+    markedByUser: marker,
     status: doc.status,
     markedAt: doc.markedAt,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
 }
+
+const ATTENDANCE_POPULATE = [
+  { path: "eventId", select: "title eventType venue startAt" },
+  { path: "studentId", select: "name email" },
+  { path: "markedBy", select: "name" },
+];
 
 /**
  * For club events, the marker must be the club's faculty coordinator, an
@@ -116,6 +170,7 @@ export async function markAttendance(
     status: input.status,
     markedAt: new Date(),
   });
+  await attendance.populate(ATTENDANCE_POPULATE);
 
   return toResponse(attendance.toObject() as LeanAttendance);
 }
@@ -139,6 +194,7 @@ export async function listAttendance(
   const [total, docs] = await Promise.all([
     Attendance.countDocuments(filter),
     Attendance.find(filter)
+      .populate(ATTENDANCE_POPULATE)
       .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -182,6 +238,7 @@ export async function updateAttendance(
   attendance.markedBy = new mongoose.Types.ObjectId(markerId);
   attendance.markedAt = new Date();
   await attendance.save();
+  await attendance.populate(ATTENDANCE_POPULATE);
 
   return toResponse(attendance.toObject() as LeanAttendance);
 }

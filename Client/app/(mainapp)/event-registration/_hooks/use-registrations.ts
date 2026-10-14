@@ -11,10 +11,14 @@ import {
   deleteRegistrationAction,
 } from "../_actions/registrations.actions";
 
-export function useRegistrations(params: ListRegistrationsParams = {}) {
+export function useRegistrations(
+  params: ListRegistrationsParams = {},
+  enabled = true
+) {
   return useQuery({
     queryKey: [...REGISTRATIONS_LIST_KEY, params],
     queryFn: () => eventRegistrationsApi.listRegistrations({ limit: 100, ...params }),
+    enabled,
   });
 }
 

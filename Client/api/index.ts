@@ -12,3 +12,4 @@ export * from "./clubs.api";
 export * from "./club-memberships.api";
 export * from "./events.api";
 export * from "./event-registrations.api";
+export * from "./attendance.api";
