@@ -1,6 +1,19 @@
+"use client";
+
+import { useAuthUser } from "@/lib/use-auth-user";
+import { usePermissions } from "@/lib/permissions";
+import { ForbiddenState } from "../../_components/forbidden-state";
 import { ClubForm } from "../_components/club-form";
 
 export default function CreateClubPage() {
+  const { user, isPending } = useAuthUser();
+  const { can } = usePermissions(user);
+
+  if (isPending) return null;
+  if (!can("clubs", "create")) {
+    return <ForbiddenState message="You don't have permission to create clubs." />;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>

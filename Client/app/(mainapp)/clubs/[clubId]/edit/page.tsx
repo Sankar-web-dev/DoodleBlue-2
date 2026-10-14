@@ -3,6 +3,9 @@
 import { useParams } from "next/navigation";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 
+import { useAuthUser } from "@/lib/use-auth-user";
+import { usePermissions } from "@/lib/permissions";
+import { ForbiddenState } from "../../../_components/forbidden-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -13,6 +16,15 @@ export default function EditClubPage() {
   const params = useParams<{ clubId: string }>();
   const { data, isPending, error, refetch } = useClub(params.clubId);
   const club = data?.club;
+
+  const { user, isPending: authPending } = useAuthUser();
+  const { can } = usePermissions(user);
+
+  if (!authPending && !can("clubs", "update")) {
+    return (
+      <ForbiddenState message="You don't have permission to edit clubs." />
+    );
+  }
 
   if (isPending) {
     return (
