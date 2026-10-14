@@ -22,12 +22,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import GenericTable from "@/components/ui/generic-table";
 
+import { useAuthUser } from "@/lib/use-auth-user";
+import { usePermissions } from "@/lib/permissions";
+import { ForbiddenState } from "../../_components/forbidden-state";
+
 import { useMembershipRows, type MembershipRow } from "../_hooks/use-memberships";
 import { MembershipDetailsSheet } from "./membership-details-sheet";
 import { DeleteMembershipDialog } from "./delete-membership-dialog";
 
 export function MembershipsView() {
   const router = useRouter();
+  const { user, isPending: userPending } = useAuthUser();
+  const { can } = usePermissions(user);
   const [viewMembership, setViewMembership] = useState<MembershipRow | null>(
     null
   );
@@ -137,31 +143,42 @@ export function MembershipsView() {
               <Eye className="h-3.5 w-3.5 mr-1.5" />
               View details
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-xs"
-              onClick={() =>
-                router.push(`/club-membership/${row.original.id}/edit`)
-              }
-            >
-              <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setDeleteMembership(row.original)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            {can("clubMemberships", "update") && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs"
+                onClick={() =>
+                  router.push(`/club-membership/${row.original.id}/edit`)
+                }
+              >
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                Edit
+              </Button>
+            )}
+            {can("clubMemberships", "delete") && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setDeleteMembership(row.original)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
         ),
       },
     ],
-    [router]
+    [router, can]
   );
+
+  if (userPending) return null;
+  if (!can("clubMemberships", "read")) {
+    return (
+      <ForbiddenState message="You don't have permission to view club memberships." />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -175,12 +192,14 @@ export function MembershipsView() {
             Map students to clubs and manage coordinators.
           </p>
         </div>
-        <Button asChild className="shrink-0 self-start sm:self-auto">
-          <Link href="/club-membership/create">
-            <Plus className="mr-2 h-4 w-4" />
-            Add membership
-          </Link>
-        </Button>
+        {can("clubMemberships", "create") && (
+          <Button asChild className="shrink-0 self-start sm:self-auto">
+            <Link href="/club-membership/create">
+              <Plus className="mr-2 h-4 w-4" />
+              Add membership
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Loading */}

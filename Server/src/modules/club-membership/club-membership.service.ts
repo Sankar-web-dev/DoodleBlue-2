@@ -13,29 +13,60 @@ import type {
 
 interface LeanMembership {
   _id: mongoose.Types.ObjectId;
-  clubId: mongoose.Types.ObjectId;
-  studentId: mongoose.Types.ObjectId;
+  clubId: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId; name: string; department: string };
+  studentId: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId; name: string; email: string };
   membershipRole: string;
   status: string;
-  assignedBy: mongoose.Types.ObjectId;
+  assignedBy: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId; name: string };
   assignedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
+function refId(
+  value: LeanMembership["clubId"] | LeanMembership["assignedBy"]
+) {
+  return value instanceof mongoose.Types.ObjectId
+    ? value.toString()
+    : value._id.toString();
+}
+
+/**
+ * Emits flat ids plus populated display objects so clients don't need extra
+ * /users or /clubs calls (which require separate permissions).
+ */
 function toResponse(doc: LeanMembership) {
+  const club = typeof doc.clubId === "object" && "name" in doc.clubId
+    ? { id: doc.clubId._id.toString(), name: doc.clubId.name, department: doc.clubId.department }
+    : undefined;
+  const student = typeof doc.studentId === "object" && "name" in doc.studentId
+    ? { id: doc.studentId._id.toString(), name: doc.studentId.name, email: doc.studentId.email }
+    : undefined;
+  const assigner = typeof doc.assignedBy === "object" && "name" in doc.assignedBy
+    ? { id: doc.assignedBy._id.toString(), name: doc.assignedBy.name }
+    : undefined;
+
   return {
     id: doc._id.toString(),
-    clubId: doc.clubId.toString(),
-    studentId: doc.studentId.toString(),
+    clubId: refId(doc.clubId),
+    studentId: refId(doc.studentId),
+    club,
+    student,
     membershipRole: doc.membershipRole,
     status: doc.status,
-    assignedBy: doc.assignedBy.toString(),
+    assignedBy: refId(doc.assignedBy),
+    assignedByUser: assigner,
     assignedAt: doc.assignedAt,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
 }
+
+const MEMBERSHIP_POPULATE = [
+  { path: "clubId", select: "name department" },
+  { path: "studentId", select: "name email" },
+  { path: "assignedBy", select: "name" },
+];
 
 // ── Shared lookups (used by event/registration/attendance/certificate services) ─
 
@@ -129,6 +160,7 @@ export async function createMembership(
     assignedBy,
     assignedAt: new Date(),
   });
+  await membership.populate(MEMBERSHIP_POPULATE);
 
   return toResponse(membership.toObject() as LeanMembership);
 }
@@ -147,6 +179,7 @@ export async function listMemberships(query: ListMembershipsQuery) {
   const [total, docs] = await Promise.all([
     ClubMembership.countDocuments(filter),
     ClubMembership.find(filter)
+      .populate(MEMBERSHIP_POPULATE)
       .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -167,7 +200,9 @@ export async function listMemberships(query: ListMembershipsQuery) {
 // ── getMembershipById ─────────────────────────────────────────────────────────
 
 export async function getMembershipById(id: string) {
-  const doc = await ClubMembership.findById(id).lean();
+  const doc = await ClubMembership.findById(id)
+    .populate(MEMBERSHIP_POPULATE)
+    .lean();
   if (!doc) {
     throw new ApiError(404, "MEMBERSHIP_NOT_FOUND", "Membership not found");
   }
@@ -219,7 +254,9 @@ export async function updateMembership(id: string, input: UpdateMembershipBody) 
     id,
     { $set: set },
     { new: true, runValidators: true }
-  ).lean();
+  )
+    .populate(MEMBERSHIP_POPULATE)
+    .lean();
 
   return toResponse(doc as unknown as LeanMembership);
 }

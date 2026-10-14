@@ -1,6 +1,21 @@
+"use client";
+
+import { useAuthUser } from "@/lib/use-auth-user";
+import { usePermissions } from "@/lib/permissions";
+import { ForbiddenState } from "../../_components/forbidden-state";
 import { MembershipForm } from "../_components/membership-form";
 
 export default function CreateMembershipPage() {
+  const { user, isPending } = useAuthUser();
+  const { can } = usePermissions(user);
+
+  if (isPending) return null;
+  if (!can("clubMemberships", "create")) {
+    return (
+      <ForbiddenState message="You don't have permission to add memberships." />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>

@@ -7,9 +7,13 @@ export interface ClubMembership {
   id: string;
   clubId: string;
   studentId: string;
+  /** Populated by the server — saves clients needing clubs:read/users:read. */
+  club?: { id: string; name: string; department: string };
+  student?: { id: string; name: string; email: string };
   membershipRole: MembershipRole;
   status: MembershipStatus;
   assignedBy: string;
+  assignedByUser?: { id: string; name: string };
   assignedAt: string;
   createdAt: string;
   updatedAt: string;

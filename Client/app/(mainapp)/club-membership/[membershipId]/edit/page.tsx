@@ -6,15 +6,27 @@ import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
+import { useAuthUser } from "@/lib/use-auth-user";
+import { usePermissions } from "@/lib/permissions";
+import { ForbiddenState } from "@/app/(mainapp)/_components/forbidden-state";
 import { useMembership } from "../../_hooks/use-memberships";
 import { MembershipForm } from "../../_components/membership-form";
 
 export default function EditMembershipPage() {
   const params = useParams<{ membershipId: string }>();
+  const { user, isPending: userPending } = useAuthUser();
+  const { can } = usePermissions(user);
   const { data, isPending, error, refetch } = useMembership(
     params.membershipId
   );
   const membership = data?.membership;
+
+  if (userPending) return null;
+  if (!can("clubMemberships", "update")) {
+    return (
+      <ForbiddenState message="You don't have permission to edit memberships." />
+    );
+  }
 
   if (isPending) {
     return (

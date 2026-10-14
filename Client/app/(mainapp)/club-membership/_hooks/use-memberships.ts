@@ -49,8 +49,8 @@ export function useUsers() {
 }
 
 /**
- * Membership rows are stored as raw ObjectIds — this joins them with the
- * clubs/users lookups so tables and sheets can display real names.
+ * Membership row with display-ready names — resolved from the server's
+ * populated `club`/`student`/`assignedByUser` objects.
  */
 export interface MembershipRow extends ClubMembership {
   clubName: string;
@@ -60,45 +60,31 @@ export interface MembershipRow extends ClubMembership {
   assignedByName: string;
 }
 
+/**
+ * The server populates club/student/assigner names on every membership
+ * response — no extra clubs/users lookups are needed (those endpoints require
+ * separate permissions that member-level roles don't have).
+ */
 export function useMembershipRows() {
   const membershipsQuery = useMemberships();
-  const clubsQuery = useClubs();
-  const usersQuery = useUsers();
 
-  const rows = useMemo<MembershipRow[]>(() => {
-    const clubById = new Map(
-      (clubsQuery.data?.data ?? []).map((c) => [c.id, c])
-    );
-    const userById = new Map(
-      (usersQuery.data?.data ?? []).map((u) => [u.id, u])
-    );
-
-    return (membershipsQuery.data?.data ?? []).map((m) => {
-      const club = clubById.get(m.clubId);
-      const student = userById.get(m.studentId);
-      return {
+  const rows = useMemo<MembershipRow[]>(
+    () =>
+      (membershipsQuery.data?.data ?? []).map((m) => ({
         ...m,
-        clubName: club?.name ?? "Unknown club",
-        clubDepartment: club?.department ?? "",
-        studentName: student?.name ?? "Unknown user",
-        studentEmail: student?.email ?? "",
-        assignedByName: userById.get(m.assignedBy)?.name ?? "—",
-      };
-    });
-  }, [membershipsQuery.data, clubsQuery.data, usersQuery.data]);
+        clubName: m.club?.name ?? "Unknown club",
+        clubDepartment: m.club?.department ?? "",
+        studentName: m.student?.name ?? "Unknown user",
+        studentEmail: m.student?.email ?? "",
+        assignedByName: m.assignedByUser?.name ?? "—",
+      })),
+    [membershipsQuery.data]
+  );
 
   return {
     data: rows,
-    isPending:
-      membershipsQuery.isPending ||
-      clubsQuery.isPending ||
-      usersQuery.isPending,
-    error:
-      membershipsQuery.error ?? clubsQuery.error ?? usersQuery.error ?? null,
-    refetch: () => {
-      membershipsQuery.refetch();
-      clubsQuery.refetch();
-      usersQuery.refetch();
-    },
+    isPending: membershipsQuery.isPending,
+    error: membershipsQuery.error ?? null,
+    refetch: membershipsQuery.refetch,
   };
 }

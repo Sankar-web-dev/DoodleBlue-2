@@ -3,6 +3,31 @@ import {
   type MembershipRole,
   type MembershipStatus,
 } from "@/api/club-memberships.api";
+import { usersApi } from "@/api/users.api";
+
+/**
+ * Create flow: provision a user account first, then attach them to the club
+ * as a plain member. Coordinator promotion happens via Edit.
+ */
+export async function createMemberWithAccountAction(input: {
+  clubId: string;
+  name: string;
+  email: string;
+  password: string;
+  roleId: string;
+}) {
+  const { user } = await usersApi.createUser({
+    name: input.name,
+    email: input.email,
+    password: input.password,
+    roleId: input.roleId,
+  });
+  return clubMembershipsApi.createMembership({
+    clubId: input.clubId,
+    studentId: user.id,
+    membershipRole: "MEMBER",
+  });
+}
 
 export async function createMembershipAction(
   clubId: string,
