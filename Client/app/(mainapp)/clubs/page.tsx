@@ -1,11 +1,16 @@
-import React from "react";
+import { RequirePermission } from "@/app/(mainapp)/_components/require-permission";
 
-const page = () => {
+export default function ClubsPage() {
   return (
-    <>
-      <div>clubs</div>
-    </>
+    <RequirePermission resource="clubs">
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Clubs</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage college clubs and their faculty coordinators.
+          </p>
+        </div>
+      </div>
+    </RequirePermission>
   );
-};
-
-export default page;
+}

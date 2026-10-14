@@ -24,12 +24,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import GenericTable from "@/components/ui/generic-table";
 
+import { useAuthUser } from "@/lib/use-auth-user";
+import { usePermissions } from "@/lib/permissions";
+import { ForbiddenState } from "../../_components/forbidden-state";
+
 import { useRoles } from "../_hooks/use-roles";
 import { RoleDetailsSheet } from "./role-details-sheet";
 import { DeleteRoleDialog } from "./delete-role-dialog";
 
 export function RolesView() {
   const router = useRouter();
+  const { user, isPending: userPending } = useAuthUser();
+  const { can } = usePermissions(user);
   const [viewRole, setViewRole] = useState<Role | null>(null);
   const [deleteRole, setDeleteRole] = useState<Role | null>(null);
 
@@ -96,35 +102,44 @@ export function RolesView() {
               <Eye className="h-3.5 w-3.5 mr-1.5" />
               View details
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-xs"
-              onClick={() => router.push(`/roles/${row.original.id}/edit`)}
-            >
-              <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setDeleteRole(row.original)}
-              disabled={row.original.isSystem}
-              title={
-                row.original.isSystem
-                  ? "System roles cannot be deleted"
-                  : undefined
-              }
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            {can("roles", "update") && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs"
+                onClick={() => router.push(`/roles/${row.original.id}/edit`)}
+              >
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                Edit
+              </Button>
+            )}
+            {can("roles", "delete") && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setDeleteRole(row.original)}
+                disabled={row.original.isSystem}
+                title={
+                  row.original.isSystem
+                    ? "System roles cannot be deleted"
+                    : undefined
+                }
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
         ),
       },
     ],
-    [router]
+    [router, can]
   );
+
+  if (userPending) return null;
+  if (!can("roles", "read")) {
+    return <ForbiddenState message="You don't have permission to view roles." />;
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -138,12 +153,14 @@ export function RolesView() {
             Create custom roles and define exactly what each one can access.
           </p>
         </div>
-        <Button asChild className="shrink-0 self-start sm:self-auto">
-          <Link href="/roles/create">
-            <Plus className="mr-2 h-4 w-4" />
-            New role
-          </Link>
-        </Button>
+        {can("roles", "create") && (
+          <Button asChild className="shrink-0 self-start sm:self-auto">
+            <Link href="/roles/create">
+              <Plus className="mr-2 h-4 w-4" />
+              New role
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Loading */}

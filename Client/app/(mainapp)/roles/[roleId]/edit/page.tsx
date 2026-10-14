@@ -6,13 +6,23 @@ import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
+import { useAuthUser } from "@/lib/use-auth-user";
+import { usePermissions } from "@/lib/permissions";
+import { ForbiddenState } from "@/app/(mainapp)/_components/forbidden-state";
 import { useRole } from "../../_hooks/use-roles";
 import { RoleForm } from "../../_components/role-form";
 
 export default function EditRolePage() {
   const params = useParams<{ roleId: string }>();
+  const { user, isPending: userPending } = useAuthUser();
+  const { can } = usePermissions(user);
   const { data, isPending, error, refetch } = useRole(params.roleId);
   const role = data?.role;
+
+  if (userPending) return null;
+  if (!can("roles", "update")) {
+    return <ForbiddenState message="You don't have permission to edit roles." />;
+  }
 
   if (isPending) {
     return (
