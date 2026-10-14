@@ -20,6 +20,24 @@ export const createUserSchema = z
   })
   .strict();
 
+// ── PATCH /api/v1/users/:id — update user details, role, or active status ──────
+
+export const updateUserSchema = z
+  .object({
+    name: z.string().trim().min(2).max(80).optional(),
+    email: z
+      .string()
+      .trim()
+      .email()
+      .transform((v) => v.toLowerCase())
+      .optional(),
+    password: z.string().min(10).max(128).optional(),
+    roleId: objectId.optional(),
+    image: z.string().trim().url().nullable().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .strict();
+
 // ── GET /api/v1/users ─────────────────────────────────────────────────────────
 
 export const listUsersQuerySchema = z.object({
@@ -31,4 +49,5 @@ export const listUsersQuerySchema = z.object({
 // ── Inferred types ────────────────────────────────────────────────────────────
 
 export type CreateUserBody = z.infer<typeof createUserSchema>;
+export type UpdateUserBody = z.infer<typeof updateUserSchema>;
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;

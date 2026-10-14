@@ -1,6 +1,6 @@
 import { api, PaginationMeta } from "@/lib/api";
 
-export interface ManagedUser {
+export interface User {
   id: string;
   name: string;
   email: string;
@@ -12,6 +12,23 @@ export interface ManagedUser {
   createdAt: string;
 }
 
+export interface CreateUserInput {
+  name: string;
+  email: string;
+  password: string;
+  roleId: string;
+  image?: string;
+}
+
+export interface UpdateUserInput {
+  name?: string;
+  email?: string;
+  password?: string;
+  roleId?: string;
+  image?: string;
+  isActive?: boolean;
+}
+
 export interface ListUsersParams {
   search?: string;
   page?: number;
@@ -19,14 +36,25 @@ export interface ListUsersParams {
 }
 
 export const usersApi = {
+  createUser: (input: CreateUserInput) =>
+    api.post<{ user: User }>("/api/v1/users", input),
+
+  updateUser: (id: string, input: UpdateUserInput) =>
+    api.patch<{ user: User }>(`/api/v1/users/${id}`, input),
+
+  getUser: (id: string) =>
+    api.get<{ user: User }>(`/api/v1/users/${id}`),
+
+  deleteUser: (id: string) =>
+    api.delete<{ message: string }>(`/api/v1/users/${id}`),
+
   listUsers: (params: ListUsersParams = {}) => {
     const qs = new URLSearchParams();
     if (params.search) qs.set("search", params.search);
     if (params.page) qs.set("page", String(params.page));
     if (params.limit) qs.set("limit", String(params.limit));
     const query = qs.toString();
-    // Server wraps the rows: data = { users: ManagedUser[] }
-    return api.getWithMeta<{ users: ManagedUser[] }, PaginationMeta>(
+    return api.getWithMeta<User[], PaginationMeta>(
       `/api/v1/users${query ? `?${query}` : ""}`
     );
   },

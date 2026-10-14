@@ -1,5 +1,7 @@
 "use client";
 
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +22,14 @@ export function DeleteMembershipDialog({
   membership,
   onClose,
 }: DeleteMembershipDialogProps) {
-  const deleteMutation = useDeleteMembership(onClose);
+  const deleteMutation = useDeleteMembership(() => {
+    toast.success("Membership removed", {
+      description: `${membership?.studentName ?? "The member"} removed from ${
+        membership?.clubName ?? "the club"
+      }.`,
+    });
+    onClose();
+  });
 
   return (
     <Dialog open={!!membership} onOpenChange={(v) => !v && onClose()}>
@@ -42,7 +51,10 @@ export function DeleteMembershipDialog({
           <Button
             variant="destructive"
             onClick={() =>
-              membership && deleteMutation.mutate(membership.id)
+              membership &&
+              deleteMutation.mutate(membership.id, {
+                onError: (err) => toast.error(err.message),
+              })
             }
             loading={deleteMutation.isPending}
             loadingText="Removing…"

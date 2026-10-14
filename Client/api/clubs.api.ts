@@ -13,6 +13,23 @@ export interface Club {
   updatedAt: string;
 }
 
+export interface CreateClubInput {
+  name: string;
+  description?: string;
+  department: string;
+  logoUrl?: string;
+  facultyCoordinatorId: string;
+}
+
+export interface UpdateClubInput {
+  name?: string;
+  description?: string;
+  department?: string;
+  logoUrl?: string | null;
+  facultyCoordinatorId?: string;
+  isActive?: boolean;
+}
+
 export interface ListClubsParams {
   search?: string;
   department?: string;
@@ -22,6 +39,18 @@ export interface ListClubsParams {
 }
 
 export const clubsApi = {
+  createClub: (input: CreateClubInput) =>
+    api.post<{ club: Club }>("/api/v1/clubs", input),
+
+  updateClub: (id: string, input: UpdateClubInput) =>
+    api.patch<{ club: Club }>(`/api/v1/clubs/${id}`, input),
+
+  deleteClub: (id: string) =>
+    api.delete<{ message: string }>(`/api/v1/clubs/${id}`),
+
+  getClub: (id: string) =>
+    api.get<{ club: Club }>(`/api/v1/clubs/${id}`),
+
   listClubs: (params: ListClubsParams = {}) => {
     const qs = new URLSearchParams();
     if (params.search) qs.set("search", params.search);

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Loader2 } from "lucide-react";
 
 import { ROLES_LIST_KEY } from "@/api/roles.api";
@@ -34,6 +36,23 @@ function emptyMatrix(): Matrix {
   return m;
 }
 
+const roleSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Role name is required.")
+    .max(60, "Role name is too long."),
+  description: z.string().trim().max(200, "Description is too long."),
+  matrix: z
+    .custom<Matrix>((v) => typeof v === "object" && v !== null)
+    .refine(
+      (m) => matrixToPermissions(m).length > 0,
+      "Select at least one permission."
+    ),
+});
+
+type RoleFormValues = z.infer<typeof roleSchema>;
+
 interface RoleFormProps {
   /** Pass an existing role to edit it; undefined = create mode */
   role?: Role;
@@ -44,67 +63,76 @@ export function RoleForm({ role }: RoleFormProps) {
   const queryClient = useQueryClient();
   const isEdit = !!role;
 
-  const [name, setName]               = useState(role?.name ?? "");
-  const [description, setDescription] = useState(role?.description ?? "");
-  const [matrix, setMatrix]           = useState<Matrix>(
-    role ? permissionsToMatrix(role.permissions) : emptyMatrix()
-  );
-  const [error, setError]             = useState<string | null>(null);
+  const form = useForm<RoleFormValues>({
+    resolver: zodResolver(roleSchema),
+    defaultValues: {
+      name: role?.name ?? "",
+      description: role?.description ?? "",
+      matrix: role ? permissionsToMatrix(role.permissions) : emptyMatrix(),
+    },
+  });
+
+  const { errors } = form.formState;
+  const matrix = form.watch("matrix");
 
   const createMutation = useMutation({
-    mutationFn: () => createRoleAction(name, description, matrix),
+    mutationFn: (values: RoleFormValues) =>
+      createRoleAction(values.name, values.description, values.matrix),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ROLES_LIST_KEY });
       router.push("/roles");
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) =>
+      form.setError("root.serverError", { message: err.message }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: () => updateRoleAction(role!.id, name, description, matrix),
+    mutationFn: (values: RoleFormValues) =>
+      updateRoleAction(role!.id, values.name, values.description, values.matrix),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ROLES_LIST_KEY });
       router.push("/roles");
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) =>
+      form.setError("root.serverError", { message: err.message }),
   });
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   function toggle(resource: Resource, action: Action) {
-    setMatrix((prev) => ({
-      ...prev,
-      [resource]: { ...prev[resource], [action]: !prev[resource][action] },
-    }));
+    const current = form.getValues("matrix");
+    form.setValue(
+      "matrix",
+      {
+        ...current,
+        [resource]: { ...current[resource], [action]: !current[resource][action] },
+      },
+      { shouldValidate: true }
+    );
   }
 
   function toggleRow(resource: Resource) {
-    const allOn = ALL_ACTIONS.every((a) => matrix[resource][a]);
-    setMatrix((prev) => ({
-      ...prev,
-      [resource]: Object.fromEntries(
-        ALL_ACTIONS.map((a) => [a, !allOn])
-      ) as Record<Action, boolean>,
-    }));
+    const current = form.getValues("matrix");
+    const allOn = ALL_ACTIONS.every((a) => current[resource][a]);
+    form.setValue(
+      "matrix",
+      {
+        ...current,
+        [resource]: Object.fromEntries(
+          ALL_ACTIONS.map((a) => [a, !allOn])
+        ) as Record<Action, boolean>,
+      },
+      { shouldValidate: true }
+    );
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (!name.trim()) {
-      setError("Role name is required.");
-      return;
-    }
-    if (matrixToPermissions(matrix).length === 0) {
-      setError("Select at least one permission.");
-      return;
-    }
-    if (isEdit) updateMutation.mutate();
-    else createMutation.mutate();
+  function onSubmit(values: RoleFormValues) {
+    if (isEdit) updateMutation.mutate(values);
+    else createMutation.mutate(values);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
       {/* Name */}
       <div className="space-y-2">
         <Label htmlFor="role-name">Role name</Label>
@@ -112,14 +140,20 @@ export function RoleForm({ role }: RoleFormProps) {
           id="role-name"
           placeholder="e.g. Faculty Manager"
           className="h-11 rounded-xl"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
           disabled={isPending || (isEdit && role?.isSystem)}
+          {...form.register("name")}
         />
-        {isEdit && role?.isSystem && (
-          <p className="text-xs text-muted-foreground">
-            System role names cannot be changed.
+        {errors.name ? (
+          <p className="text-xs font-medium text-destructive">
+            {errors.name.message}
           </p>
+        ) : (
+          isEdit &&
+          role?.isSystem && (
+            <p className="text-xs text-muted-foreground">
+              System role names cannot be changed.
+            </p>
+          )
         )}
       </div>
 
@@ -132,10 +166,14 @@ export function RoleForm({ role }: RoleFormProps) {
           id="role-desc"
           placeholder="Short description of what this role can do"
           className="h-11 rounded-xl"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
           disabled={isPending}
+          {...form.register("description")}
         />
+        {errors.description && (
+          <p className="text-xs font-medium text-destructive">
+            {errors.description.message}
+          </p>
+        )}
       </div>
 
       {/* Permission matrix */}
@@ -206,11 +244,16 @@ export function RoleForm({ role }: RoleFormProps) {
         <p className="text-xs text-muted-foreground">
           Click a resource name to toggle all its actions at once.
         </p>
+        {errors.matrix && (
+          <p className="text-xs font-medium text-destructive">
+            {errors.matrix.message}
+          </p>
+        )}
       </div>
 
-      {error && (
+      {errors.root?.serverError && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
-          {error}
+          {errors.root.serverError.message}
         </div>
       )}
 

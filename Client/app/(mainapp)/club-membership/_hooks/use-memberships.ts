@@ -70,7 +70,7 @@ export function useMembershipRows() {
       (clubsQuery.data?.data ?? []).map((c) => [c.id, c])
     );
     const userById = new Map(
-      (usersQuery.data?.data.users ?? []).map((u) => [u.id, u])
+      (usersQuery.data?.data ?? []).map((u) => [u.id, u])
     );
 
     return (membershipsQuery.data?.data ?? []).map((m) => {

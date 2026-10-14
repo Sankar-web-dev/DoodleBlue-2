@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { MEMBERSHIPS_LIST_KEY } from "@/api/club-memberships.api";
 import type {
@@ -40,9 +41,7 @@ export function MembershipForm({ membership }: MembershipFormProps) {
   const usersQuery = useUsers();
 
   const clubs = (clubsQuery.data?.data ?? []).filter((c) => c.isActive);
-  const students = (usersQuery.data?.data.users ?? []).filter(
-    (u) => u.isActive
-  );
+  const students = (usersQuery.data?.data ?? []).filter((u) => u.isActive);
 
   const [clubId, setClubId] = useState(membership?.clubId ?? "");
   const [studentId, setStudentId] = useState(membership?.studentId ?? "");
@@ -58,6 +57,9 @@ export function MembershipForm({ membership }: MembershipFormProps) {
     mutationFn: () => createMembershipAction(clubId, studentId, membershipRole),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MEMBERSHIPS_LIST_KEY });
+      toast.success("Membership added", {
+        description: `${selectedStudentName} added to ${selectedClubName}.`,
+      });
       router.push("/club-membership");
     },
     onError: (err: Error) => setError(err.message),
@@ -68,6 +70,7 @@ export function MembershipForm({ membership }: MembershipFormProps) {
       updateMembershipAction(membership!.id, membershipRole, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MEMBERSHIPS_LIST_KEY });
+      toast.success("Membership updated");
       router.push("/club-membership");
     },
     onError: (err: Error) => setError(err.message),
@@ -95,13 +98,18 @@ export function MembershipForm({ membership }: MembershipFormProps) {
     else createMutation.mutate();
   }
 
+  const selectedClubName =
+    clubs.find((c) => c.id === clubId)?.name ?? "the club";
+  const selectedStudentName =
+    students.find((u) => u.id === studentId)?.name ?? "The member";
+
   // In edit mode the pair is immutable — show the resolved names read-only.
   const editClubName =
     clubsQuery.data?.data.find((c) => c.id === membership?.clubId)?.name ??
     membership?.clubId;
   const editStudentName =
-    usersQuery.data?.data.users.find((u) => u.id === membership?.studentId)
-      ?.name ?? membership?.studentId;
+    usersQuery.data?.data.find((u) => u.id === membership?.studentId)?.name ??
+    membership?.studentId;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>

@@ -1,11 +1,10 @@
-import React from "react";
+import { ClubsView } from "./_components/clubs-view";
+import { RequirePermission } from "@/app/(mainapp)/_components/require-permission";
 
-const page = () => {
+export default function ClubsPage() {
   return (
-    <>
-      <div>clubs</div>
-    </>
+    <RequirePermission resource="clubs">
+      <ClubsView />
+    </RequirePermission>
   );
-};
-
-export default page;
+}
