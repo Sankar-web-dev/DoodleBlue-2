@@ -8,6 +8,14 @@ export function useRoles() {
   });
 }
 
+export function useRole(id: string) {
+  return useQuery({
+    queryKey: ["roles", "detail", id],
+    queryFn: () => rolesApi.getRole(id),
+    enabled: !!id,
+  });
+}
+
 export function useDeleteRole(onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({

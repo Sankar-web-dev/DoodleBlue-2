@@ -31,7 +31,7 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
             {items.map((item) => {
               const isActive = pathname === item.href;
               return (
-                <SidebarMenuItem key={item.id}>
+                <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
                     tooltip={item.label}

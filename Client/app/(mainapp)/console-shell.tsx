@@ -22,8 +22,10 @@ export function ConsoleShell({
   children: React.ReactNode;
 }) {
   const { can } = usePermissions(user);
-  // Only show nav items for resources the user has "read" permission on.
-  const items = NAV_ITEMS.filter((item) => can(item.id, "read"));
+  // Ungated items are always visible; gated items need "read" on the resource.
+  const items = NAV_ITEMS.filter(
+    (item) => !item.resource || can(item.resource, "read")
+  );
 
   return (
     <SidebarProvider>
