@@ -16,6 +16,17 @@ export function useClub(id: string) {
   });
 }
 
+export function useApproveClub() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => clubsApi.approveClub(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: CLUBS_LIST_KEY });
+      queryClient.invalidateQueries({ queryKey: ["clubs", "detail", id] });
+    },
+  });
+}
+
 export function useDeleteClub(onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({

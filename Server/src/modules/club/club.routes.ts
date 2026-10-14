@@ -9,6 +9,11 @@ router.use(authenticate);
 router.post("/", authorize("clubs", "create"), ClubController.createClub);
 router.get("/", authorize("clubs", "read"), ClubController.listClubs);
 router.get("/:id", authorize("clubs", "read"), ClubController.getClub);
+router.patch(
+  "/:id/approve",
+  authorize("clubs", "update"),
+  ClubController.approveClub
+);
 router.patch("/:id", authorize("clubs", "update"), ClubController.updateClub);
 router.delete("/:id", authorize("clubs", "delete"), ClubController.deleteClub);
 
