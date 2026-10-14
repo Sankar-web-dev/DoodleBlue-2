@@ -3,6 +3,9 @@
 import { useParams } from "next/navigation";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 
+import { useAuthUser } from "@/lib/use-auth-user";
+import { usePermissions } from "@/lib/permissions";
+import { ForbiddenState } from "../../../_components/forbidden-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -13,6 +16,15 @@ export default function EditUserPage() {
   const params = useParams<{ userId: string }>();
   const { data, isPending, error, refetch } = useUser(params.userId);
   const user = data?.user;
+
+  const { user: currentUser, isPending: authPending } = useAuthUser();
+  const { can } = usePermissions(currentUser);
+
+  if (!authPending && !can("users", "update")) {
+    return (
+      <ForbiddenState message="You don't have permission to edit users." />
+    );
+  }
 
   if (isPending) {
     return (

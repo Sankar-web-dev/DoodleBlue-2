@@ -85,7 +85,9 @@ export async function createClub(input: CreateClubBody, createdBy: string) {
     department: input.department,
     logoUrl: input.logoUrl,
     facultyCoordinatorId: input.facultyCoordinatorId,
-    isActive: true,
+    // New clubs start inactive — a SUPER_ADMIN must approve them before
+    // they become active.
+    isActive: false,
     createdBy,
   });
 
@@ -139,10 +141,24 @@ export async function getClubById(id: string) {
 
 // ── updateClub ────────────────────────────────────────────────────────────────
 
-export async function updateClub(id: string, input: UpdateClubBody) {
+export async function updateClub(
+  id: string,
+  input: UpdateClubBody,
+  isSuperAdmin: boolean
+) {
   const existing = await Club.findById(id);
   if (!existing) {
     throw new ApiError(404, "CLUB_NOT_FOUND", "Club not found");
+  }
+
+  // Activation status is controlled through the approval flow — only a
+  // SUPER_ADMIN may toggle it (directly or via PATCH /:id/approve).
+  if (input.isActive !== undefined && !isSuperAdmin) {
+    throw new ApiError(
+      403,
+      "FORBIDDEN",
+      "Only a super admin can change a club's active status"
+    );
   }
 
   if (input.name && input.name !== existing.name) {
@@ -182,6 +198,23 @@ export async function updateClub(id: string, input: UpdateClubBody) {
   ).lean();
 
   return toResponse(doc as unknown as LeanClub);
+}
+
+// ── approveClub ───────────────────────────────────────────────────────────────
+
+export async function approveClub(id: string) {
+  const existing = await Club.findById(id);
+  if (!existing) {
+    throw new ApiError(404, "CLUB_NOT_FOUND", "Club not found");
+  }
+  if (existing.isActive) {
+    throw new ApiError(409, "CLUB_ALREADY_ACTIVE", "Club is already active");
+  }
+
+  existing.isActive = true;
+  await existing.save();
+
+  return toResponse(existing.toObject() as LeanClub);
 }
 
 // ── deleteClub ────────────────────────────────────────────────────────────────

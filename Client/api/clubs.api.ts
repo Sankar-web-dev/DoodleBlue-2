@@ -45,6 +45,9 @@ export const clubsApi = {
   updateClub: (id: string, input: UpdateClubInput) =>
     api.patch<{ club: Club }>(`/api/v1/clubs/${id}`, input),
 
+  approveClub: (id: string) =>
+    api.patch<{ club: Club }>(`/api/v1/clubs/${id}/approve`),
+
   deleteClub: (id: string) =>
     api.delete<{ message: string }>(`/api/v1/clubs/${id}`),
 

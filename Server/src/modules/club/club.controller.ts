@@ -72,7 +72,36 @@ export async function updateClub(
     return;
   }
 
-  const club = await ClubService.updateClub(id, parsed.data);
+  const currentUser = res.locals.currentUser as IUser;
+  const club = await ClubService.updateClub(
+    id,
+    parsed.data,
+    currentUser.role === "SUPER_ADMIN"
+  );
+  res.status(200).json({ success: true, data: { club } });
+}
+
+// PATCH /api/v1/clubs/:id/approve — SUPER_ADMIN only
+export async function approveClub(
+  req: Request,
+  res: Response
+): Promise<void> {
+  const currentUser = res.locals.currentUser as IUser;
+  if (currentUser.role !== "SUPER_ADMIN") {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: "FORBIDDEN",
+        message: "Only a super admin can approve clubs",
+      },
+    });
+    return;
+  }
+
+  const id = parseIdParam(req, res);
+  if (!id) return;
+
+  const club = await ClubService.approveClub(id);
   res.status(200).json({ success: true, data: { club } });
 }
 

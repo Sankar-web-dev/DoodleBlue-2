@@ -25,8 +25,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import GenericTable from "@/components/ui/generic-table";
 
-import { useQuery } from "@tanstack/react-query";
-import { authService, AUTH_ME_KEY } from "@/api/auth.api";
+import { useAuthUser } from "@/lib/use-auth-user";
+import { usePermissions } from "@/lib/permissions";
 import { useUsers } from "../_hooks/use-users";
 import { UserDetailsSheet } from "./user-details-sheet";
 import { DeleteUserDialog } from "./delete-user-dialog";
@@ -36,11 +36,9 @@ export function UsersView() {
   const [viewUser, setViewUser] = useState<User | null>(null);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
-  const { data: meData } = useQuery({
-    queryKey: AUTH_ME_KEY,
-    queryFn: authService.me,
-  });
-  const isSuperAdmin = meData?.user?.role === "SUPER_ADMIN";
+  const { user: currentUser } = useAuthUser();
+  const { can } = usePermissions(currentUser);
+  const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
 
   const { data, isPending, error, refetch } = useUsers();
   const rawUsers = Array.isArray(data?.data)
@@ -130,34 +128,38 @@ export function UsersView() {
               <Eye className="h-3.5 w-3.5 mr-1.5" />
               View details
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-xs"
-              onClick={() => router.push(`/users/${row.original.id}/edit`)}
-            >
-              <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setDeleteUser(row.original)}
-              disabled={row.original.role === "SUPER_ADMIN"}
-              title={
-                row.original.role === "SUPER_ADMIN"
-                  ? "SUPER_ADMIN cannot be deleted"
-                  : undefined
-              }
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            {can("users", "update") && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs"
+                onClick={() => router.push(`/users/${row.original.id}/edit`)}
+              >
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                Edit
+              </Button>
+            )}
+            {can("users", "delete") && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setDeleteUser(row.original)}
+                disabled={row.original.role === "SUPER_ADMIN"}
+                title={
+                  row.original.role === "SUPER_ADMIN"
+                    ? "SUPER_ADMIN cannot be deleted"
+                    : undefined
+                }
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
         ),
       },
     ],
-    [router]
+    [router, can]
   );
 
   return (
@@ -170,12 +172,14 @@ export function UsersView() {
             Provision user accounts, assign custom roles, and view access profiles.
           </p>
         </div>
-        <Button asChild className="shrink-0 self-start sm:self-auto bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90">
-          <Link href="/users/create">
-            <Plus className="mr-2 h-4 w-4" />
-            New user
-          </Link>
-        </Button>
+        {can("users", "create") && (
+          <Button asChild className="shrink-0 self-start sm:self-auto bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90">
+            <Link href="/users/create">
+              <Plus className="mr-2 h-4 w-4" />
+              New user
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Loading */}

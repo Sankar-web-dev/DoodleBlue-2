@@ -23,7 +23,15 @@ export function DeleteClubDialog({ club, onClose }: DeleteClubDialogProps) {
   const deleteMutation = useDeleteClub(onClose);
 
   return (
-    <Dialog open={!!club} onOpenChange={(v) => !v && onClose()}>
+    <Dialog
+      open={!!club}
+      onOpenChange={(v) => {
+        if (!v) {
+          deleteMutation.reset();
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete &ldquo;{club?.name}&rdquo;?</DialogTitle>
@@ -32,6 +40,13 @@ export function DeleteClubDialog({ club, onClose }: DeleteClubDialogProps) {
             with memberships or events must be deactivated instead.
           </DialogDescription>
         </DialogHeader>
+
+        {deleteMutation.isError && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+            {deleteMutation.error.message}
+          </div>
+        )}
+
         <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={onClose}>
             Cancel
