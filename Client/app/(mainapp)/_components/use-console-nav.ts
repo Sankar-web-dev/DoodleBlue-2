@@ -43,7 +43,6 @@ export function useConsoleNav(user: AuthUser | null): NavItem[] {
   return useMemo(
     () =>
       NAV_ITEMS.filter((item) => {
-        if (item.superAdminOnly && !isSuperAdmin) return false;
         if (item.resource && !can(item.resource, "read")) return false;
         if (item.requiresCoordinator && !isSuperAdmin) {
           // Hide until membership data resolves — a member should never see

@@ -26,8 +26,6 @@ export type NavItem = {
    * admins) see these items. SUPER_ADMIN always sees them.
    */
   requiresCoordinator?: boolean;
-  /** Visible only to SUPER_ADMIN, regardless of role permissions. */
-  superAdminOnly?: boolean;
 };
 
 /**
@@ -37,8 +35,8 @@ export type NavItem = {
  */
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard",           label: "Dashboard",           icon: LayoutDashboard },
-  { href: "/roles",               label: "Roles",               icon: ShieldCheck,    resource: "roles", superAdminOnly: true },
-  { href: "/users",               label: "Users",               icon: Users,          resource: "users", superAdminOnly: true },
+  { href: "/roles",               label: "Roles",               icon: ShieldCheck,    resource: "roles" },
+  { href: "/users",               label: "Users",               icon: Users,          resource: "users" },
   { href: "/clubs",               label: "Clubs",               icon: Building2,      resource: "clubs" },
   { href: "/club-membership",     label: "Club Memberships",    icon: UserCheck,      resource: "clubMemberships" },
   { href: "/events",              label: "Events",              icon: CalendarDays,   resource: "events" },
