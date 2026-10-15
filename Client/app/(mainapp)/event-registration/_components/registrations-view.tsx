@@ -37,6 +37,7 @@ import {
 } from "../_hooks/use-registrations";
 import { RegistrationStatusBadge } from "./registration-status-badge";
 import { RejectRegistrationDialog } from "./reject-registration-dialog";
+import { RegistrationCelebration } from "./registration-celebration";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -60,6 +61,11 @@ export function RegistrationsView() {
   const canDelete = can("eventRegistrations", "delete");
 
   const [rejectReg, setRejectReg] = useState<EventRegistration | null>(null);
+  const [celebrate, setCelebrate] = useState<{
+    title: string;
+    venue?: string;
+    pending: boolean;
+  } | null>(null);
 
   // PUBLISHED only — the server additionally scopes club events to the
   // student's active memberships for non-managers.
@@ -93,11 +99,11 @@ export function RegistrationsView() {
   function handleRegister(event: EventItem) {
     registerMutation.mutate(event.id, {
       onSuccess: (res) =>
-        toast.success(
-          res.registration.status === "PENDING"
-            ? "Registration submitted — awaiting coordinator approval"
-            : `Registered for "${event.title}"`
-        ),
+        setCelebrate({
+          title: event.title,
+          venue: event.venue,
+          pending: res.registration.status === "PENDING",
+        }),
       onError: (err) =>
         toast.error(
           err instanceof Error ? err.message : "Registration failed"
@@ -539,6 +545,16 @@ export function RegistrationsView() {
         registration={rejectReg}
         onClose={() => setRejectReg(null)}
       />
+
+      {/* Full-screen success celebration */}
+      {celebrate && (
+        <RegistrationCelebration
+          eventTitle={celebrate.title}
+          venue={celebrate.venue}
+          pending={celebrate.pending}
+          onClose={() => setCelebrate(null)}
+        />
+      )}
     </div>
   );
 }
