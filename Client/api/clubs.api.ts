@@ -51,6 +51,16 @@ export const clubsApi = {
   deleteClub: (id: string) =>
     api.delete<{ message: string }>(`/api/v1/clubs/${id}`),
 
+  /** Upload a club logo image file via FormData */
+  uploadClubImage: (file: File) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    return api.postFormData<{ url: string; filename: string }>(
+      "/api/v1/clubs/upload-image",
+      formData
+    );
+  },
+
   getClub: (id: string) =>
     api.get<{ club: Club }>(`/api/v1/clubs/${id}`),
 

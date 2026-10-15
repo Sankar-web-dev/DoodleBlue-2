@@ -25,6 +25,7 @@ export interface EventItem {
   endAt: string;
   registrationDeadline?: string;
   capacity?: number;
+  imageUrl?: string;
   createdBy: string;
   status: EventStatus;
   approvedBy?: string;
@@ -45,6 +46,7 @@ export interface CreateEventInput {
   endAt: string;
   registrationDeadline?: string;
   capacity?: number;
+  imageUrl?: string;
 }
 
 export interface UpdateEventInput {
@@ -57,6 +59,7 @@ export interface UpdateEventInput {
   endAt?: string;
   registrationDeadline?: string | null;
   capacity?: number | null;
+  imageUrl?: string | null;
 }
 
 export interface ListEventsParams {
@@ -92,6 +95,16 @@ export const eventsApi = {
     const query = qs.toString();
     return api.getWithMeta<EventItem[], PaginationMeta>(
       `/api/v1/events${query ? `?${query}` : ""}`
+    );
+  },
+
+  /** Upload an event image file via FormData */
+  uploadEventImage: (file: File) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    return api.postFormData<{ url: string; filename: string }>(
+      "/api/v1/events/upload-image",
+      formData
     );
   },
 

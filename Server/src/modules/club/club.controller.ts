@@ -27,6 +27,33 @@ export async function createClub(
   res.status(201).json({ success: true, data: { club } });
 }
 
+// POST /api/v1/clubs/upload-image — upload a club logo file via multer
+export async function uploadClubImage(
+  req: Request,
+  res: Response
+): Promise<void> {
+  if (!req.file) {
+    res.status(400).json({
+      success: false,
+      error: {
+        code: "NO_FILE_UPLOADED",
+        message: "No image file provided",
+      },
+    });
+    return;
+  }
+
+  // Construct relative URL path stored in DB and accessible via express.static
+  const imageUrl = `/uploads/clubs/${req.file.filename}`;
+  res.status(200).json({
+    success: true,
+    data: {
+      url: imageUrl,
+      filename: req.file.filename,
+    },
+  });
+}
+
 // GET /api/v1/clubs
 export async function listClubs(
   req: Request,

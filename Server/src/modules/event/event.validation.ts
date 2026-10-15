@@ -49,6 +49,8 @@ export const createEventSchema = z
     endAt: dateField,
     registrationDeadline: dateField.optional(),
     capacity: z.coerce.number().int().min(1).optional(),
+    /** Optional event image — an uploaded relative path or an external URL. */
+    imageUrl: z.string().trim().min(1).max(500).optional(),
   })
   .strict()
   .superRefine((v, ctx) => {
@@ -75,6 +77,7 @@ export const updateEventSchema = z
     endAt: dateField.optional(),
     registrationDeadline: dateField.nullable().optional(),
     capacity: z.coerce.number().int().min(1).nullable().optional(),
+    imageUrl: z.string().trim().min(1).max(500).nullable().optional(),
   })
   .strict()
   .refine((v) => Object.values(v).some((x) => x !== undefined), {

@@ -34,6 +34,16 @@ export function EventDetailsSheet({ event, onClose }: EventDetailsSheetProps) {
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         {event && (
           <>
+            {event.imageUrl && (
+              <div className="mb-4 overflow-hidden rounded-xl border border-border/60">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={event.imageUrl}
+                  alt={`${event.title} image`}
+                  className="h-auto w-full object-cover"
+                />
+              </div>
+            )}
             <SheetHeader>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

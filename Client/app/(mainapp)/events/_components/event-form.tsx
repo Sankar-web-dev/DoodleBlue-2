@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Building2, Globe } from "lucide-react";
+import { Camera, Loader2, Building2, Globe, Trash2, Upload } from "lucide-react";
 
-import { EVENTS_LIST_KEY } from "@/api/events.api";
+import { eventsApi, EVENTS_LIST_KEY } from "@/api/events.api";
 import type { EventItem, EventType } from "@/api/events.api";
 import { clubsApi, CLUBS_LIST_KEY } from "@/api/clubs.api";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,9 @@ export function EventForm({ event }: EventFormProps) {
   const [capacity, setCapacity] = useState(
     event?.capacity != null ? String(event.capacity) : ""
   );
+  const [imageUrl, setImageUrl] = useState(event?.imageUrl ?? "");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data: clubsData } = useQuery({
@@ -75,6 +78,7 @@ export function EventForm({ event }: EventFormProps) {
           ? new Date(registrationDeadline).toISOString()
           : undefined,
         capacity: capacity ? Number(capacity) : undefined,
+        imageUrl: imageUrl.trim() || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EVENTS_LIST_KEY });
@@ -97,6 +101,7 @@ export function EventForm({ event }: EventFormProps) {
           ? new Date(registrationDeadline).toISOString()
           : null,
         capacity: capacity ? Number(capacity) : null,
+        imageUrl: imageUrl.trim() || null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EVENTS_LIST_KEY });
@@ -106,7 +111,39 @@ export function EventForm({ event }: EventFormProps) {
     onError: (err: Error) => setError(err.message),
   });
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending =
+    createMutation.isPending || updateMutation.isPending || isUploadingImage;
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file (JPEG, PNG, WEBP, GIF).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be smaller than 5MB.");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setError(null);
+    try {
+      const res = await eventsApi.uploadEventImage(file);
+      setImageUrl(res.url);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to upload event image."
+      );
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -223,6 +260,76 @@ export function EventForm({ event }: EventFormProps) {
           </select>
         </div>
       )}
+
+      {/* Event image upload */}
+      <div className="space-y-2">
+        <Label>
+          Event image <span className="text-muted-foreground">(optional)</span>
+        </Label>
+        <div className="flex items-center gap-4">
+          {imageUrl ? (
+            <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-xl border border-border/60">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageUrl}
+                alt="Event image preview"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="flex h-20 w-32 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/30">
+              <Camera className="h-6 w-6 text-muted-foreground" />
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 rounded-lg"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isPending}
+          >
+            {isUploadingImage ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            {imageUrl ? "Change image" : "Upload image"}
+          </Button>
+          {imageUrl && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setImageUrl("")}
+              disabled={isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Remove
+            </Button>
+          )}
+        </div>
+        <Input
+          id="event-image-url"
+          placeholder="…or paste an image URL"
+          className="h-11 rounded-xl"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          disabled={isPending}
+        />
+        <p className="text-xs text-muted-foreground">
+          Accepted formats: JPEG, PNG, WEBP, GIF (max 5MB).
+        </p>
+      </div>
 
       {/* Venue */}
       <div className="space-y-2">

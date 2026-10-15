@@ -4,6 +4,7 @@ import {
   authorize,
   requirePasswordChanged,
 } from "../auth/auth.middleware";
+import { uploadEventImage } from "../../lib/upload";
 import * as EventController from "./event.controller";
 
 const router = Router();
@@ -13,6 +14,12 @@ router.use(requirePasswordChanged);
 
 // Collection
 router.post("/", authorize("events", "create"), EventController.createEvent);
+router.post(
+  "/upload-image",
+  authorize("events", "create"),
+  uploadEventImage.single("image"),
+  EventController.uploadEventImage
+);
 router.get("/", authorize("events", "read"), EventController.listEvents);
 
 // Single event
