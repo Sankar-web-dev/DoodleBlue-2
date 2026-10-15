@@ -83,8 +83,10 @@ export function EventsView() {
   // Approve / reject / publish are SUPER_ADMIN decisions on the server.
   const isSuperAdmin = me?.user?.role === "SUPER_ADMIN";
 
-  const { data, isPending, error, refetch } = useEvents();
-  const events = data?.data ?? [];
+  const { data, isPending, error, refetch } = useEvents({
+    eventType: "GENERAL",
+  });
+  const events = (data?.data ?? []).filter((e) => e.eventType !== "CLUB");
 
   const transition = useEventTransition();
 
