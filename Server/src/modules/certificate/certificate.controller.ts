@@ -13,7 +13,12 @@ import { IRole } from "../role/role.model";
 function canManageCertificates(res: Response): boolean {
   const user = res.locals.currentUser as IUser;
   const role = res.locals.currentRole as IRole | null;
-  return hasPermission(user, role, "certificates", "update");
+  // Requesters (create) and approvers (update) both need the managed-event
+  // scope — not just their own certificates.
+  return (
+    hasPermission(user, role, "certificates", "update") ||
+    hasPermission(user, role, "certificates", "create")
+  );
 }
 
 // POST /api/v1/certificates — coordinator requests a certificate

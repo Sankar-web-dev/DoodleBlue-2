@@ -43,12 +43,11 @@ export async function listAttendance(
 
   const currentUser = res.locals.currentUser as IUser;
   const role = res.locals.currentRole as IRole | null;
-  const canManage = hasPermission(
-    currentUser,
-    role,
-    "attendance",
-    "update"
-  );
+  // Anyone who can mark (create) or correct (update) attendance needs the
+  // managed-event scope — not just their own records.
+  const canManage =
+    hasPermission(currentUser, role, "attendance", "update") ||
+    hasPermission(currentUser, role, "attendance", "create");
 
   const result = await AttendanceService.listAttendance(
     parsed.data,

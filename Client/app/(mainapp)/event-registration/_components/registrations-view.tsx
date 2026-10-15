@@ -209,6 +209,9 @@ export function RegistrationsView() {
             );
           }
           const closed = isClosed(event);
+          const registering =
+            registerMutation.isPending &&
+            registerMutation.variables === event.id;
           return (
             <div className="flex justify-end">
               <Button
@@ -217,7 +220,7 @@ export function RegistrationsView() {
                 disabled={closed || registerMutation.isPending}
                 onClick={() => handleRegister(event)}
               >
-                {registerMutation.isPending ? (
+                {registering ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   "Register"
@@ -234,7 +237,7 @@ export function RegistrationsView() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [myRegByEvent, registerMutation.isPending]
+    [myRegByEvent, registerMutation.isPending, registerMutation.variables]
   );
 
   // ── Registrations table ──────────────────────────────────────────────────
@@ -353,7 +356,10 @@ export function RegistrationsView() {
                   size="sm"
                   variant="ghost"
                   className="h-8 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
-                  disabled={reviewMutation.isPending}
+                  disabled={
+                    reviewMutation.isPending &&
+                    reviewMutation.variables?.id === reg.id
+                  }
                   onClick={() => handleApprove(reg)}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
@@ -375,7 +381,10 @@ export function RegistrationsView() {
                 size="sm"
                 variant="ghost"
                 className="h-8 text-xs"
-                disabled={cancelMutation.isPending}
+                disabled={
+                  cancelMutation.isPending &&
+                  cancelMutation.variables === reg.id
+                }
                 onClick={() => handleCancel(reg)}
               >
                 <Ban className="h-3.5 w-3.5 mr-1" />
@@ -387,7 +396,10 @@ export function RegistrationsView() {
                 size="sm"
                 variant="ghost"
                 className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                disabled={deleteMutation.isPending}
+                disabled={
+                  deleteMutation.isPending &&
+                  deleteMutation.variables === reg.id
+                }
                 onClick={() => handleDelete(reg)}
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -400,7 +412,7 @@ export function RegistrationsView() {
 
     return cols;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canReview, canDelete, user?.id, reviewMutation.isPending, cancelMutation.isPending, deleteMutation.isPending]);
+  }, [canReview, canDelete, user?.id, reviewMutation.isPending, reviewMutation.variables, cancelMutation.isPending, cancelMutation.variables, deleteMutation.isPending, deleteMutation.variables]);
 
   if (userPending) return null;
   if (!can("eventRegistrations", "read")) {
