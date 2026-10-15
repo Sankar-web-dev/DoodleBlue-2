@@ -20,22 +20,22 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <Card className="border-border/70 bg-card/95 shadow-sm">
-        <CardHeader className="flex-row items-center gap-3 space-y-0">
-          <span className="rounded-lg bg-primary/10 p-2 text-primary">
+      <Card className="border-border/80 bg-card/80 shadow-sm backdrop-blur-xs">
+        <CardHeader className="flex-row items-center gap-3.5 space-y-0 p-6">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <GraduationCap className="h-5 w-5" />
           </span>
           <div>
-            <CardTitle className="text-base">Signed in</CardTitle>
-            <CardDescription>{user?.email}</CardDescription>
+            <CardTitle className="text-base font-semibold">Signed in</CardTitle>
+            <CardDescription className="text-xs">{user?.email}</CardDescription>
           </div>
           {user && (
-            <Badge className="ml-auto bg-secondary text-secondary-foreground">
+            <Badge variant="secondary" className="ml-auto">
               {getRoleLabel(user.role)}
             </Badge>
           )}
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6 pt-0">
           <p className="text-sm text-muted-foreground">
             Use the sidebar to manage resources.
           </p>

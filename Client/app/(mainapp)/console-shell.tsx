@@ -33,13 +33,13 @@ export function ConsoleShell({
       </Sidebar>
 
       <SidebarInset className="min-w-0 overflow-x-hidden bg-ambient-mesh">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border/60 bg-card/60 px-4 py-4 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border/80 bg-card/75 px-4 backdrop-blur-md sm:px-6">
           <div className="flex items-center gap-3">
-            <SidebarTrigger />
+            <SidebarTrigger className="hover:bg-accent hover:text-accent-foreground" />
           </div>
         </header>
 
-        <main className="flex min-h-[calc(100vh-8rem)] flex-1 flex-col gap-4 p-4 md:gap-8 md:px-5 md:py-2">
+        <main className="flex min-h-[calc(100vh-4rem)] flex-1 flex-col gap-6 p-4 sm:p-6 md:p-8">
           {children}
         </main>
       </SidebarInset>

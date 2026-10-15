@@ -54,7 +54,7 @@ export function ProfileView() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column: Avatar & Overview Card */}
-        <Card className="md:col-span-1 border-border/70 bg-card/80 shadow-sm flex flex-col items-center p-6 text-center">
+        <Card className="md:col-span-1 border-border/80 bg-card/80 shadow-sm backdrop-blur-xs flex flex-col items-center p-6 text-center">
           <div className="relative mb-4">
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -75,11 +75,8 @@ export function ProfileView() {
           <p className="text-xs text-muted-foreground mb-3">{user.email}</p>
 
           <Badge
-            className={
-              isSuper
-                ? "border-transparent bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-                : "border-border bg-secondary text-secondary-foreground"
-            }
+            variant={isSuper ? "default" : "secondary"}
+            className={isSuper ? "shadow-sm shadow-primary/25" : ""}
           >
             <RoleIcon className="mr-1.5 h-3.5 w-3.5" />
             {getRoleLabel(user.role)}
@@ -106,7 +103,7 @@ export function ProfileView() {
 
         {/* Right Column: Account Details & Change Password */}
         <div className="md:col-span-2 space-y-6">
-          <Card className="border-border/70 bg-card/80 shadow-sm">
+          <Card className="border-border/80 bg-card/80 shadow-sm backdrop-blur-xs">
             <CardHeader className="pb-4">
               <CardTitle className="text-base flex items-center gap-2">
                 <UserIcon className="h-4 w-4 text-primary" />

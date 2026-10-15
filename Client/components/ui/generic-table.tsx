@@ -351,14 +351,14 @@ export default function GenericTable<TData, TValue>({
           {customFilterComponent}
         </div>
       </div>
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-card/60 shadow-sm backdrop-blur-xs">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="border-border/80 hover:bg-transparent">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="bg-muted/50">
+                    <TableHead key={header.id} className="bg-muted/40 font-semibold text-xs tracking-wider uppercase text-muted-foreground">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -377,9 +377,10 @@ export default function GenericTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="border-border/60 transition-colors hover:bg-muted/30"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="py-3.5">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -392,7 +393,7 @@ export default function GenericTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-28 text-center text-muted-foreground"
                 >
                   No results.
                 </TableCell>
@@ -404,7 +405,7 @@ export default function GenericTable<TData, TValue>({
       {pagination && (
         <div className="flex items-center justify-end space-x-2 py-4">
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
@@ -412,7 +413,7 @@ export default function GenericTable<TData, TValue>({
             Previous
           </Button>
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}

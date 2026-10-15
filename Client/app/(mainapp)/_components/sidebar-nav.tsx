@@ -36,7 +36,7 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
                     asChild
                     tooltip={item.label}
                     isActive={isActive}
-                    className="h-10 data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-semibold"
+                    className="h-10 rounded-xl transition-all duration-150 data-[active=true]:bg-primary/12 data-[active=true]:text-primary data-[active=true]:font-semibold data-[active=true]:shadow-xs hover:bg-sidebar-accent"
                   >
                     <Link href={item.href}>
                       {isActive && isFetching > 0 ? (

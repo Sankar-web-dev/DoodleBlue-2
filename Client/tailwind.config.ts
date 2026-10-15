@@ -30,6 +30,10 @@ export default {
           DEFAULT: "oklch(var(--secondary) / <alpha-value>)",
           foreground: "oklch(var(--secondary-foreground) / <alpha-value>)",
         },
+        tertiary: {
+          DEFAULT: "oklch(var(--tertiary) / <alpha-value>)",
+          foreground: "oklch(var(--tertiary-foreground) / <alpha-value>)",
+        },
         muted: {
           DEFAULT: "oklch(var(--muted) / <alpha-value>)",
           foreground: "oklch(var(--muted-foreground) / <alpha-value>)",

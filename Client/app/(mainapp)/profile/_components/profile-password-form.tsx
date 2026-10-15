@@ -67,7 +67,7 @@ export function ProfilePasswordForm() {
   };
 
   return (
-    <Card className="border-border/70 bg-card/80 shadow-sm">
+    <Card className="border-border/80 bg-card/80 shadow-sm backdrop-blur-xs">
       <CardHeader className="pb-4">
         <CardTitle className="text-base flex items-center gap-2">
           <KeyRound className="h-4 w-4 text-primary" />
@@ -87,7 +87,7 @@ export function ProfilePasswordForm() {
                 type={showCurrent ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder="Enter current password"
-                className="h-11 rounded-xl pl-10 pr-11 border-border/70 focus-visible:ring-primary"
+                className="h-11 rounded-xl pl-10 pr-11 border-border/80 bg-background/50 focus-visible:ring-primary/40 focus-visible:border-primary"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 disabled={changeMutation.isPending}
@@ -95,7 +95,7 @@ export function ProfilePasswordForm() {
               <button
                 type="button"
                 onClick={() => setShowCurrent((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-accent"
                 aria-label={showCurrent ? "Hide password" : "Show password"}
               >
                 {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -114,7 +114,7 @@ export function ProfilePasswordForm() {
                   type={showNew ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="Min 10 characters"
-                  className="h-11 rounded-xl pl-10 pr-11 border-border/70 focus-visible:ring-primary"
+                  className="h-11 rounded-xl pl-10 pr-11 border-border/80 bg-background/50 focus-visible:ring-primary/40 focus-visible:border-primary"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   disabled={changeMutation.isPending}
@@ -122,7 +122,7 @@ export function ProfilePasswordForm() {
                 <button
                   type="button"
                   onClick={() => setShowNew((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-accent"
                   aria-label={showNew ? "Hide password" : "Show password"}
                 >
                   {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -139,7 +139,7 @@ export function ProfilePasswordForm() {
                   type={showConfirm ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="Repeat new password"
-                  className="h-11 rounded-xl pl-10 pr-11 border-border/70 focus-visible:ring-primary"
+                  className="h-11 rounded-xl pl-10 pr-11 border-border/80 bg-background/50 focus-visible:ring-primary/40 focus-visible:border-primary"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={changeMutation.isPending}
@@ -147,7 +147,7 @@ export function ProfilePasswordForm() {
                 <button
                   type="button"
                   onClick={() => setShowConfirm((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-accent"
                   aria-label={showConfirm ? "Hide password" : "Show password"}
                 >
                   {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -172,7 +172,7 @@ export function ProfilePasswordForm() {
           <div className="flex justify-end pt-2">
             <Button
               type="submit"
-              className="h-11 px-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all rounded-xl"
+              className="h-11 px-6 bg-primary hover:bg-primary/85 text-primary-foreground shadow-sm shadow-primary/25 transition-all rounded-xl"
               disabled={changeMutation.isPending}
             >
               {changeMutation.isPending ? (

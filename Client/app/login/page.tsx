@@ -67,9 +67,9 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-ambient-mesh px-4 py-10 sm:px-8">
-      <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card/95 p-8 shadow-md backdrop-blur sm:p-10">
+      <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card/90 p-8 shadow-xl backdrop-blur-md sm:p-10">
           <div className="mb-8 flex flex-col items-center text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/10">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
               <GraduationCap className="h-7 w-7" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight">
@@ -82,7 +82,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email address</Label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -90,7 +90,7 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   placeholder="you@example.com"
-                  className="h-11 rounded-xl pl-10 border-border/70 focus-visible:ring-primary"
+                  className="h-11 rounded-xl pl-10 border-border/80 bg-background/50 focus-visible:ring-primary/40 focus-visible:border-primary"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loginMutation.isPending}
@@ -99,7 +99,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Password</Label>
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -107,7 +107,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="Enter your password"
-                  className="h-11 rounded-xl pl-10 pr-11 border-border/70 focus-visible:ring-primary"
+                  className="h-11 rounded-xl pl-10 pr-11 border-border/80 bg-background/50 focus-visible:ring-primary/40 focus-visible:border-primary"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loginMutation.isPending}
@@ -115,7 +115,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-accent"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
@@ -136,7 +136,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               size="lg"
-              className="h-11 w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all"
+              className="h-11 w-full bg-primary hover:bg-primary/85 text-primary-foreground shadow-md shadow-primary/25 transition-all"
               disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? (
