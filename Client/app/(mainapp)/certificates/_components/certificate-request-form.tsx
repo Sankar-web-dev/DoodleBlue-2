@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
 import { CERTIFICATES_LIST_KEY } from "@/api/certificates.api";
-import { eventsApi } from "@/api/events.api";
-import { usersApi } from "@/api/users.api";
+import { useAuthUser } from "@/lib/use-auth-user";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
+import { useManageableEvents } from "../../_components/use-manageable-events";
+import { useAttendance } from "../../attendances/_hooks/use-attendance";
 import { requestCertificateAction } from "../_actions/certificates.actions";
 
 const selectClassName =
@@ -20,21 +21,26 @@ export function CertificateRequestForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const { user } = useAuthUser();
+
   const [eventId, setEventId] = useState("");
   const [studentId, setStudentId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const { data: eventsData, isPending: eventsPending } = useQuery({
-    queryKey: ["events", "options"],
-    queryFn: () => eventsApi.listEvents({ limit: 100 }),
-  });
-  const { data: usersData, isPending: usersPending } = useQuery({
-    queryKey: ["users", "options"],
-    queryFn: () => usersApi.listUsers({ limit: 100 }),
-  });
+  // Scoped like attendance marking: event coordinator → general events,
+  // club coordinator/faculty → their club events, super admin → all.
+  const { events, isPending: eventsPending } = useManageableEvents(user);
 
-  const events = eventsData?.data ?? [];
-  const students = usersData?.data ?? [];
+  // Only students marked PRESENT for the chosen event are eligible —
+  // populated attendance records give their names without users:read.
+  const attendanceQuery = useAttendance(
+    { eventId, status: "PRESENT" },
+    !!eventId
+  );
+  const students = (attendanceQuery.data?.data ?? [])
+    .map((r) => r.student)
+    .filter((s): s is NonNullable<typeof s> => !!s);
+  const studentsPending = !!eventId && attendanceQuery.isPending;
 
   const requestMutation = useMutation({
     mutationFn: () => requestCertificateAction({ eventId, studentId }),
@@ -74,9 +80,13 @@ export function CertificateRequestForm() {
           <option value="">
             {eventsPending ? "Loading events…" : "Select an event…"}
           </option>
+          {events.length === 0 && !eventsPending ? (
+            <option disabled>No manageable events found</option>
+          ) : null}
           {events.map((ev) => (
             <option key={ev.id} value={ev.id}>
-              {ev.title} —{" "}
+              {ev.title}
+              {ev.eventType === "CLUB" ? " — Club" : " — General"} —{" "}
               {new Date(ev.startAt).toLocaleDateString(undefined, {
                 dateStyle: "medium",
               })}
@@ -93,20 +103,26 @@ export function CertificateRequestForm() {
           className={selectClassName}
           value={studentId}
           onChange={(e) => setStudentId(e.target.value)}
-          disabled={requestMutation.isPending || usersPending}
+          disabled={requestMutation.isPending || studentsPending || !eventId}
         >
           <option value="">
-            {usersPending ? "Loading students…" : "Select a student…"}
+            {!eventId
+              ? "Select an event first"
+              : studentsPending
+                ? "Loading attendees…"
+                : students.length === 0
+                  ? "No present attendees for this event"
+                  : "Select a student…"}
           </option>
-          {students.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name} — {u.email}
+          {students.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} — {s.email}
             </option>
           ))}
         </select>
         <p className="text-xs text-muted-foreground">
-          The student must be registered for the event and marked present
-          before a certificate can be requested.
+          Only students marked present for the event are eligible for a
+          certificate.
         </p>
       </div>
 

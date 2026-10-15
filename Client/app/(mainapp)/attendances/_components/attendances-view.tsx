@@ -14,16 +14,11 @@ import {
 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { useQuery } from "@tanstack/react-query";
-
 import type { AttendanceRecord, AttendanceStatus } from "@/api/attendance.api";
 import type { EventRegistration } from "@/api/event-registrations.api";
-import {
-  clubMembershipsApi,
-  MY_MEMBERSHIPS_KEY,
-} from "@/api/club-memberships.api";
 import { useAuthUser } from "@/lib/use-auth-user";
-import { usePermissions, isEventCoordinatorRole } from "@/lib/permissions";
+import { usePermissions } from "@/lib/permissions";
+import { useManageableEvents } from "../../_components/use-manageable-events";
 import { ForbiddenState } from "../../_components/forbidden-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,8 +32,7 @@ import {
 } from "@/components/ui/select";
 import GenericTable from "@/components/ui/generic-table";
 
-import { useEvents } from "../../events/_hooks/use-events";
-import { useClubs } from "../../club-membership/_hooks/use-memberships";
+
 import { useRegistrations } from "../../event-registration/_hooks/use-registrations";
 import {
   useAttendance,
@@ -69,57 +63,16 @@ export function AttendancesView() {
   const canCorrect = can("attendance", "update");
   const canManage = canMark || canCorrect;
 
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
-  const isEventCoord = isEventCoordinatorRole(user?.role);
-
   const [eventId, setEventId] = useState("");
 
-  // Published events only — non-managers are additionally scoped to their
-  // own clubs by the server.
-  const eventsQuery = useEvents({ status: "PUBLISHED" });
-  const events = eventsQuery.data?.data ?? [];
-
-  // Club-staff scope: clubs the user coordinates (membership) or
-  // faculty-coordinates (owned club). The event coordinator role handles
-  // general events instead.
-  const myMemberships = useQuery({
-    queryKey: MY_MEMBERSHIPS_KEY,
-    queryFn: clubMembershipsApi.listMyMemberships,
-    enabled: canManage && !isSuperAdmin,
-    staleTime: 60_000,
-  });
-  const clubsQuery = useClubs();
-
-  const markableEvents = useMemo(() => {
-    if (isSuperAdmin) return events;
-    if (isEventCoord) return events.filter((e) => e.eventType === "GENERAL");
-
-    const coordClubIds = new Set(
-      (myMemberships.data ?? [])
-        .filter(
-          (m) => m.status === "ACTIVE" && m.membershipRole === "COORDINATOR"
-        )
-        .map((m) => m.clubId)
-    );
-    const facultyClubIds = new Set(
-      (clubsQuery.data?.data ?? [])
-        .filter((c) => c.facultyCoordinatorId === user?.id)
-        .map((c) => c.id)
-    );
-    return events.filter(
-      (e) =>
-        e.eventType === "CLUB" &&
-        e.clubId != null &&
-        (coordClubIds.has(e.clubId) || facultyClubIds.has(e.clubId))
-    );
-  }, [
-    events,
-    isSuperAdmin,
-    isEventCoord,
-    myMemberships.data,
-    clubsQuery.data,
-    user?.id,
-  ]);
+  // Only events this user can mark: club staff → their club events, event
+  // coordinator → general events, super admin → all (published).
+  const {
+    events: markableEvents,
+    isPending: eventsPending,
+    error: eventsError,
+    refetch: refetchEvents,
+  } = useManageableEvents(user);
 
   const selectedEvent = markableEvents.find((e) => e.id === eventId);
 
@@ -372,11 +325,11 @@ export function AttendancesView() {
   // Disabled queries report isPending — only count them once an event is
   // picked (managers) since students' records query is always enabled.
   const isPending = canManage
-    ? eventsQuery.isPending ||
+    ? eventsPending ||
       (!!eventId && (regsQuery.isPending || recordsQuery.isPending))
     : recordsQuery.isPending;
   const error = canManage
-    ? eventsQuery.error ??
+    ? eventsError ??
       (eventId ? regsQuery.error ?? recordsQuery.error : null)
     : recordsQuery.error;
 
@@ -411,7 +364,7 @@ export function AttendancesView() {
               size="sm"
               variant="outline"
               onClick={() => {
-                eventsQuery.refetch();
+                refetchEvents();
                 regsQuery.refetch();
                 recordsQuery.refetch();
               }}
