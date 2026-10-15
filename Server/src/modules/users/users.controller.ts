@@ -25,6 +25,33 @@ export async function createUser(
   res.status(201).json({ success: true, data: { user } });
 }
 
+// POST /api/v1/users/upload-avatar — upload an avatar image file via multer
+export async function uploadAvatar(
+  req: Request,
+  res: Response
+): Promise<void> {
+  if (!req.file) {
+    res.status(400).json({
+      success: false,
+      error: {
+        code: "NO_FILE_UPLOADED",
+        message: "No image file provided",
+      },
+    });
+    return;
+  }
+
+  // Construct relative URL path stored in DB and accessible via express.static
+  const imageUrl = `/uploads/profiles/${req.file.filename}`;
+  res.status(200).json({
+    success: true,
+    data: {
+      url: imageUrl,
+      filename: req.file.filename,
+    },
+  });
+}
+
 // GET /api/v1/users — list accounts (filterable by search)
 export async function listUsers(
   req: Request,

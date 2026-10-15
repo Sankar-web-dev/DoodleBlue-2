@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate, authorize } from "../auth/auth.middleware";
+import { uploadProfileImage } from "../../lib/upload";
 import * as UsersController from "./users.controller";
 
 // User-account provisioning — SUPER_ADMIN (or any role granted users:*).
@@ -8,6 +9,12 @@ const router = Router();
 router.use(authenticate);
 
 router.post("/", authorize("users", "create"), UsersController.createUser);
+router.post(
+  "/upload-avatar",
+  authorize("users", "create"),
+  uploadProfileImage.single("avatar"),
+  UsersController.uploadAvatar
+);
 router.get("/", authorize("users", "read"), UsersController.listUsers);
 // Picker list — the controller applies its own multi-permission check.
 // Must precede /:id.

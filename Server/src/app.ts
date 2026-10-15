@@ -1,4 +1,5 @@
 import express, { ErrorRequestHandler } from "express";
+import path from "path";
 import cors from "cors";
 import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
@@ -27,7 +28,11 @@ export function createApp() {
     process.env.CLIENT_ORIGIN ||
     "http://localhost:3000";
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    })
+  );
 
   app.use(
     cors({
@@ -37,6 +42,7 @@ export function createApp() {
   );
 
   app.use(express.json({ limit: "1mb" }));
+  app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
   // Sessions must be registered before authentication routes.
   app.use(createSessionMiddleware());

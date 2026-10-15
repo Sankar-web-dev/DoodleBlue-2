@@ -79,6 +79,24 @@ export const api = {
     fetchEnvelope<T, M>(path),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "POST", body: JSON.stringify(body) }),
+  postFormData: async <T>(path: string, formData: FormData): Promise<T> => {
+    const res = await fetch(path, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    const body = (await res.json().catch(() => null)) as ApiEnvelope<T, never> | null;
+    if (!res.ok || !body?.success) {
+      throw new ApiRequestError(
+        res.status,
+        body?.error ?? {
+          code: "UNKNOWN_ERROR",
+          message: "File upload failed. Please try again.",
+        }
+      );
+    }
+    return body.data as T;
+  },
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),

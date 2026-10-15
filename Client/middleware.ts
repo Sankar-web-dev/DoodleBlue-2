@@ -36,5 +36,6 @@ export const config = {
     "/event-registration/:path*",
     "/attendances/:path*",
     "/certificates/:path*",
+    "/profile/:path*",
   ],
 };

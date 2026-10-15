@@ -58,9 +58,18 @@ export function UsersView() {
         header: "User",
         cell: ({ row }) => (
           <div className="flex items-center gap-3 py-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <UserCheck className="h-4 w-4" />
-            </div>
+            {row.original.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={row.original.image}
+                alt={row.original.name}
+                className="h-8 w-8 shrink-0 rounded-full border border-primary/20 object-cover"
+              />
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                {row.original.name.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{row.original.name}</p>
               <p className="truncate text-xs text-muted-foreground">

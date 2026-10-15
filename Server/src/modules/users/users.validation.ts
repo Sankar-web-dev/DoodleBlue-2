@@ -15,8 +15,8 @@ export const createUserSchema = z
     password: z.string().min(10).max(128),
     /** Must reference an active Role document. */
     roleId: objectId,
-    /** Optional profile image URL. */
-    image: z.string().trim().url().optional(),
+    /** Optional profile image URL or relative path. */
+    image: z.string().trim().min(1).max(500).optional(),
   })
   .strict();
 
@@ -33,7 +33,7 @@ export const updateUserSchema = z
       .optional(),
     password: z.string().min(10).max(128).optional(),
     roleId: objectId.optional(),
-    image: z.string().trim().url().nullable().optional(),
+    image: z.string().trim().min(1).max(500).nullable().optional(),
     isActive: z.boolean().optional(),
   })
   .strict();

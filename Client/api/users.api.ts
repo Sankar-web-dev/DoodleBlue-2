@@ -51,6 +51,15 @@ export const usersApi = {
    */
   listUserOptions: () => api.get<UserOption[]>("/api/v1/users/options"),
 
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append("avatar", file);
+    return api.postFormData<{ url: string; filename: string }>(
+      "/api/v1/users/upload-avatar",
+      formData
+    );
+  },
+
   createUser: (input: CreateUserInput) =>
     api.post<{ user: User }>("/api/v1/users", input),
 

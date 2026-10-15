@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, ShieldCheck, KeyRound, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { Loader2, ShieldCheck, KeyRound, Eye, EyeOff, Upload, X } from "lucide-react";
 
-import { USERS_LIST_KEY, type User } from "@/api/users.api";
+import { USERS_LIST_KEY, usersApi, type User } from "@/api/users.api";
 import { useRoles } from "../../roles/_hooks/use-roles";
 import { createUserAction, updateUserAction } from "../_actions/users.actions";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export function UserForm({ user }: UserFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isEdit = !!user;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: rolesData, isLoading: rolesLoading } = useRoles();
   const roles = rolesData?.data ?? [];
@@ -50,6 +51,7 @@ export function UserForm({ user }: UserFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [roleId, setRoleId] = useState(user?.roleId ?? "");
   const [image, setImage] = useState(user?.image ?? "");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isActive, setIsActive] = useState(user?.isActive ?? true);
   const [error, setError] = useState<string | null>(null);
 
@@ -133,7 +135,37 @@ export function UserForm({ user }: UserFormProps) {
     },
   });
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending = createMutation.isPending || updateMutation.isPending || isUploadingImage;
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file (JPEG, PNG, WEBP, GIF).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be smaller than 5MB.");
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      setError(null);
+      const res = await usersApi.uploadAvatar(file);
+      setImage(res.url);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to upload image";
+      setError(msg);
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -383,19 +415,79 @@ export function UserForm({ user }: UserFormProps) {
         </div>
       )}
 
-      {/* Profile Image */}
-      <div className="space-y-2">
-        <Label htmlFor="user-image">
-          Avatar Image URL <span className="text-muted-foreground">(optional)</span>
-        </Label>
-        <Input
-          id="user-image"
-          placeholder="https://example.com/avatar.jpg"
-          className="h-11 rounded-xl"
-          value={image}
-          onChange={(e) => setImage(e.target.value)}
-          disabled={isPending}
-        />
+      {/* Profile Image with Multer Upload */}
+      <div className="space-y-3">
+        <Label>Profile Avatar <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
+
+        <div className="flex items-center gap-4">
+          {/* Avatar Preview */}
+          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-border/80 bg-muted flex items-center justify-center shadow-sm">
+            {image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={image}
+                alt="Avatar preview"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-xl font-semibold text-muted-foreground">
+                {name ? name.charAt(0).toUpperCase() : "?"}
+              </span>
+            )}
+            {image && (
+              <button
+                type="button"
+                onClick={() => setImage("")}
+                disabled={isPending}
+                className="absolute top-0 right-0 bg-background/90 text-foreground rounded-full p-0.5 shadow hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                title="Remove image"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex-1 space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={isPending}
+            />
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl gap-2 text-xs h-9"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isPending}
+              >
+                {isUploadingImage ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+                {isUploadingImage ? "Uploading..." : "Upload photo"}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                JPEG, PNG, WEBP or GIF (Max 5MB)
+              </span>
+            </div>
+
+            <Input
+              id="user-image"
+              placeholder="Or paste image URL (e.g. /uploads/profiles/... or https://...)"
+              className="h-9 rounded-xl text-xs"
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              disabled={isPending}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Error display */}
