@@ -12,7 +12,8 @@ export const createClubSchema = z
       .max(80, "Name must be at most 80 characters"),
     description: z.string().trim().max(500).optional().default(""),
     department: z.string().trim().min(2).max(80),
-    logoUrl: z.string().trim().url().optional(),
+    /** Optional club logo — an uploaded relative path or an external URL. */
+    logoUrl: z.string().trim().min(1).max(500).optional(),
     facultyCoordinatorId: objectId,
   })
   .strict();
@@ -24,7 +25,7 @@ export const updateClubSchema = z
     name: z.string().trim().min(2).max(80).optional(),
     description: z.string().trim().max(500).optional(),
     department: z.string().trim().min(2).max(80).optional(),
-    logoUrl: z.string().trim().url().nullable().optional(),
+    logoUrl: z.string().trim().min(1).max(500).nullable().optional(),
     facultyCoordinatorId: objectId.optional(),
     isActive: z.boolean().optional(),
   })

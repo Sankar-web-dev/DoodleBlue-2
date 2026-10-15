@@ -56,6 +56,33 @@ export async function createEvent(
   res.status(201).json({ success: true, data: { event } });
 }
 
+// POST /api/v1/events/upload-image — upload an event image file via multer
+export async function uploadEventImage(
+  req: Request,
+  res: Response
+): Promise<void> {
+  if (!req.file) {
+    res.status(400).json({
+      success: false,
+      error: {
+        code: "NO_FILE_UPLOADED",
+        message: "No image file provided",
+      },
+    });
+    return;
+  }
+
+  // Construct relative URL path stored in DB and accessible via express.static
+  const imageUrl = `/uploads/events/${req.file.filename}`;
+  res.status(200).json({
+    success: true,
+    data: {
+      url: imageUrl,
+      filename: req.file.filename,
+    },
+  });
+}
+
 // GET /api/v1/events
 export async function listEvents(
   req: Request,

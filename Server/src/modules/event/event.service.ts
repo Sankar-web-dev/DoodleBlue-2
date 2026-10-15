@@ -23,6 +23,7 @@ interface LeanEvent {
   endAt: Date;
   registrationDeadline?: Date;
   capacity?: number;
+  imageUrl?: string;
   createdBy: mongoose.Types.ObjectId;
   status: string;
   approvedBy?: mongoose.Types.ObjectId;
@@ -45,6 +46,7 @@ function toResponse(doc: LeanEvent) {
     endAt: doc.endAt,
     registrationDeadline: doc.registrationDeadline,
     capacity: doc.capacity,
+    imageUrl: doc.imageUrl,
     createdBy: doc.createdBy.toString(),
     status: doc.status,
     approvedBy: doc.approvedBy?.toString(),
@@ -95,6 +97,7 @@ export async function createEvent(input: CreateEventBody, createdBy: string) {
     endAt: input.endAt,
     registrationDeadline: input.registrationDeadline,
     capacity: input.capacity,
+    imageUrl: input.imageUrl,
     createdBy,
     status: "DRAFT",
   });
@@ -300,6 +303,9 @@ export async function updateEvent(id: string, input: UpdateEventBody) {
   }
   if (input.capacity !== undefined) {
     event.capacity = input.capacity ?? undefined;
+  }
+  if (input.imageUrl !== undefined) {
+    event.imageUrl = input.imageUrl ?? undefined;
   }
 
   await event.save();

@@ -110,9 +110,18 @@ export function EventsView() {
         header: "Event",
         cell: ({ row }) => (
           <div className="flex items-center gap-3 py-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <CalendarDays className="h-4 w-4" />
-            </div>
+            {row.original.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={row.original.imageUrl}
+                alt={`${row.original.title} image`}
+                className="h-8 w-12 shrink-0 rounded-lg border border-border/60 object-cover"
+              />
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <CalendarDays className="h-4 w-4" />
+              </div>
+            )}
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">
                 {row.original.title}

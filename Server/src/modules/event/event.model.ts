@@ -28,6 +28,7 @@ export interface IEvent extends Document {
   endAt: Date;
   registrationDeadline?: Date;
   capacity?: number;
+  imageUrl?: string;
   createdBy: mongoose.Types.ObjectId;
   status: EventStatus;
   approvedBy?: mongoose.Types.ObjectId;
@@ -97,6 +98,11 @@ const eventSchema = new Schema<IEvent>(
       type: Number,
       required: false,
       min: 1,
+    },
+    imageUrl: {
+      type: String,
+      required: false,
+      trim: true,
     },
     createdBy: {
       type: Schema.Types.ObjectId,

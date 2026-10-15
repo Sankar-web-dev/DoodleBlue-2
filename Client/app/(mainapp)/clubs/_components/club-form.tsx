@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Camera, Loader2, Trash2, Upload } from "lucide-react";
 
-import { CLUBS_LIST_KEY } from "@/api/clubs.api";
+import { clubsApi, CLUBS_LIST_KEY } from "@/api/clubs.api";
 import type { Club } from "@/api/clubs.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,8 @@ export function ClubForm({ club }: ClubFormProps) {
   const [description, setDescription] = useState(club?.description ?? "");
   const [department, setDepartment] = useState(club?.department ?? "");
   const [logoUrl, setLogoUrl] = useState(club?.logoUrl ?? "");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [facultyCoordinatorId, setFacultyCoordinatorId] = useState(
     club?.facultyCoordinatorId ?? ""
   );
@@ -84,7 +86,39 @@ export function ClubForm({ club }: ClubFormProps) {
     onError: (err: Error) => setError(err.message),
   });
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending =
+    createMutation.isPending || updateMutation.isPending || isUploadingImage;
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File size should not exceed 5MB.");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setError(null);
+    try {
+      const res = await clubsApi.uploadClubImage(file);
+      setLogoUrl(res.url);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to upload club logo."
+      );
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -199,20 +233,74 @@ export function ClubForm({ club }: ClubFormProps) {
         />
       </div>
 
-      {/* Logo URL */}
+      {/* Club logo upload */}
       <div className="space-y-2">
-        <Label htmlFor="club-logo">
-          Logo URL <span className="text-muted-foreground">(optional)</span>
+        <Label>
+          Club logo <span className="text-muted-foreground">(optional)</span>
         </Label>
+        <div className="flex items-center gap-4">
+          {logoUrl ? (
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border/60">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoUrl}
+                alt="Club logo preview"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/30">
+              <Camera className="h-6 w-6 text-muted-foreground" />
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 rounded-lg"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isPending}
+          >
+            {isUploadingImage ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            {logoUrl ? "Change logo" : "Upload logo"}
+          </Button>
+          {logoUrl && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setLogoUrl("")}
+              disabled={isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Remove
+            </Button>
+          )}
+        </div>
         <Input
-          id="club-logo"
-          type="url"
-          placeholder="https://…"
+          id="club-logo-url"
+          placeholder="…or paste an image URL"
           className="h-11 rounded-xl"
           value={logoUrl}
           onChange={(e) => setLogoUrl(e.target.value)}
           disabled={isPending}
         />
+        <p className="text-xs text-muted-foreground">
+          Accepted formats: JPEG, PNG, WEBP, GIF (max 5MB).
+        </p>
       </div>
 
       {error && (
