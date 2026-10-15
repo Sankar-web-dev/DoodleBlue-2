@@ -11,6 +11,7 @@ import {
 import { SidebarBrand } from "./_components/sidebar-brand";
 import { SidebarNav } from "./_components/sidebar-nav";
 import { SidebarUserFooter } from "./_components/sidebar-user-footer";
+import { ChangePasswordDialog } from "./_components/change-password-dialog";
 import { useConsoleNav } from "./_components/use-console-nav";
 
 export function ConsoleShell({
@@ -42,6 +43,13 @@ export function ConsoleShell({
           {children}
         </main>
       </SidebarInset>
+
+      {/* Temporary-password accounts must set a new password before using the
+          app — non-dismissable until the flag clears (also enforced by the
+          server via PASSWORD_CHANGE_REQUIRED). */}
+      {user.mustChangePassword && (
+        <ChangePasswordDialog open onClose={() => {}} />
+      )}
     </SidebarProvider>
   );
 }

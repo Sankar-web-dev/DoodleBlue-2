@@ -21,8 +21,8 @@ export async function createUser(
     return;
   }
 
-  const user = await UsersService.createUser(parsed.data);
-  res.status(201).json({ success: true, data: { user } });
+  const { user, emailSent } = await UsersService.createUser(parsed.data);
+  res.status(201).json({ success: true, data: { user, emailSent } });
 }
 
 // POST /api/v1/users/upload-avatar — upload an avatar image file via multer

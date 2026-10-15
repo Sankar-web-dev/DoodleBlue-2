@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   KeyRound,
@@ -12,7 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import { authService } from "@/api/auth.api";
+import { authService, AUTH_ME_KEY } from "@/api/auth.api";
 import { ApiRequestError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,11 +40,15 @@ export function ChangePasswordDialog({
   const [showConfirm, setShowConfirm] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [changed, setChanged] = useState(false);
+  const queryClient = useQueryClient();
 
   const changeMutation = useMutation({
     mutationFn: () =>
       authService.changePassword(currentPassword, newPassword),
     onSuccess: () => {
+      // Refresh the auth cache so mustChangePassword flips to false and any
+      // forced dialog releases.
+      queryClient.invalidateQueries({ queryKey: AUTH_ME_KEY });
       setChanged(true);
       setCurrentPassword("");
       setNewPassword("");

@@ -15,7 +15,8 @@ export interface User {
 export interface CreateUserInput {
   name: string;
   email: string;
-  password: string;
+  /** Omit to have the server generate one and email it to the user. */
+  password?: string;
   roleId: string;
   image?: string;
 }
@@ -61,7 +62,7 @@ export const usersApi = {
   },
 
   createUser: (input: CreateUserInput) =>
-    api.post<{ user: User }>("/api/v1/users", input),
+    api.post<{ user: User; emailSent: boolean }>("/api/v1/users", input),
 
   updateUser: (id: string, input: UpdateUserInput) =>
     api.patch<{ user: User }>(`/api/v1/users/${id}`, input),

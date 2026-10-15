@@ -1,8 +1,10 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import { randomBytes } from "crypto";
 import User, { IUser } from "../auth/user.model";
 import Role from "../role/role.model";
 import { ApiError } from "../../lib/ApiError";
+import { sendTempPasswordEmail } from "../../lib/mailer";
 import type {
   CreateUserBody,
   UpdateUserBody,
@@ -29,6 +31,11 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** 16 url-safe chars — satisfies the min-10 policy and is email-friendly. */
+function generateTempPassword(): string {
+  return randomBytes(12).toString("base64url");
+}
+
 // ── createUser ────────────────────────────────────────────────────────────────
 
 export async function createUser(input: CreateUserBody) {
@@ -50,10 +57,14 @@ export async function createUser(input: CreateUserBody) {
     );
   }
 
+  // When no password is supplied, generate a secure random one — it is emailed
+  // to the user and must be changed on first login.
+  const tempPassword = input.password ?? generateTempPassword();
+
   const user = await User.create({
     name: input.name,
     email: input.email,
-    passwordHash: await bcrypt.hash(input.password, 12),
+    passwordHash: await bcrypt.hash(tempPassword, 12),
     // The stored role name mirrors the Role document — roleId is the
     // authoritative link used to resolve permissions.
     role: role.name,
@@ -63,7 +74,13 @@ export async function createUser(input: CreateUserBody) {
     isActive: true,
   });
 
-  return safeUser(user);
+  const emailSent = await sendTempPasswordEmail({
+    to: user.email,
+    name: user.name,
+    password: tempPassword,
+  }).catch(() => false);
+
+  return { user: safeUser(user), emailSent };
 }
 
 // ── listUsers ─────────────────────────────────────────────────────────────────

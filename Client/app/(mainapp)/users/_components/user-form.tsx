@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, ShieldCheck, KeyRound, Eye, EyeOff, Upload, X } from "lucide-react";
+import { toast } from "sonner";
+import { Loader2, ShieldCheck, KeyRound, Eye, EyeOff, Mail, Upload,X } from "lucide-react";
 
 import { USERS_LIST_KEY, usersApi, type User } from "@/api/users.api";
 import { useRoles } from "../../roles/_hooks/use-roles";
@@ -102,12 +103,22 @@ export function UserForm({ user }: UserFormProps) {
       createUserAction({
         name,
         email,
-        password,
+        // No password — the server generates one and emails it to the user.
         roleId,
         image: image || undefined,
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: USERS_LIST_KEY });
+      if (data.emailSent) {
+        toast.success("User created", {
+          description: "Login credentials were emailed to them.",
+        });
+      } else {
+        toast.warning("User created — email not sent", {
+          description:
+            "SMTP isn't configured on the server; share credentials manually.",
+        });
+      }
       router.push("/users");
     },
     onError: (err: Error) => {
@@ -181,14 +192,6 @@ export function UserForm({ user }: UserFormProps) {
     }
 
     if (!isEdit) {
-      if (!password) {
-        setError("Password is required.");
-        return;
-      }
-      if (password.length < 10) {
-        setError("Password must be at least 10 characters.");
-        return;
-      }
       if (!roleId) {
         setError("Please select a role.");
         return;
@@ -240,55 +243,64 @@ export function UserForm({ user }: UserFormProps) {
         />
       </div>
 
-      {/* Password */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="user-password">
-            {isEdit ? "New password (leave blank to keep current)" : "Temporary password"}{" "}
-            <span className="text-xs text-muted-foreground">(min 10 chars)</span>
-          </Label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={generatePassword}
-            className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
-            disabled={isPending}
-          >
-            <KeyRound className="h-3 w-3" />
-            Auto-generate
-          </Button>
+      {/* Password — create emails generated credentials; edit = manual reset */}
+      {isEdit ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="user-password">
+              New password (leave blank to keep current){" "}
+              <span className="text-xs text-muted-foreground">(min 10 chars)</span>
+            </Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={generatePassword}
+              className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
+              disabled={isPending}
+            >
+              <KeyRound className="h-3 w-3" />
+              Auto-generate
+            </Button>
+          </div>
+          <div className="relative">
+            <Input
+              id="user-password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Leave blank to keep unchanged"
+              className="h-11 rounded-xl pr-10 font-mono text-sm"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isPending}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              tabIndex={-1}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Setting a new password will prompt the user to change it on their next login.
+          </p>
         </div>
-        <div className="relative">
-          <Input
-            id="user-password"
-            type={showPassword ? "text" : "password"}
-            placeholder={isEdit ? "Leave blank to keep unchanged" : "••••••••••"}
-            className="h-11 rounded-xl pr-10 font-mono text-sm"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isPending}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            tabIndex={-1}
-            title={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </button>
+      ) : (
+        <div className="flex items-start gap-2.5 rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+          <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Login credentials are generated automatically and emailed to the
+            user — they&apos;ll be required to set a new password on first
+            sign-in.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {isEdit
-            ? "Setting a new password will prompt the user to change it on their next login."
-            : "The user will be required to change this password on their first login."}
-        </p>
-      </div>
+      )}
 
       {/* Role Selection */}
       <div className="space-y-2">

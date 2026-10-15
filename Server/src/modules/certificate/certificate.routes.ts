@@ -1,10 +1,15 @@
 import { Router } from "express";
-import { authenticate, authorize } from "../auth/auth.middleware";
+import {
+  authenticate,
+  authorize,
+  requirePasswordChanged,
+} from "../auth/auth.middleware";
 import * as CertificateController from "./certificate.controller";
 
 const router = Router();
 
 router.use(authenticate);
+router.use(requirePasswordChanged);
 
 router.post(
   "/",
