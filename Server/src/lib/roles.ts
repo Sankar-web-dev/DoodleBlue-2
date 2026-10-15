@@ -12,6 +12,8 @@ export function isSuperAdminRole(roleName: string): boolean {
 }
 
 export function isEventCoordinator(roleName: string): boolean {
-  return roleName.trim().toUpperCase().replace(/[\s-]+/g, "_") ===
-    "Event Coordinator";
+  const n = roleName.trim().toUpperCase().replace(/[\s-]+/g, "_");
+  // Tolerant: "Event Coordinator", "EVENT_COORDINATORS",
+  // "General Event Coordinator", …
+  return n.includes("EVENT") && n.includes("COORDINATOR");
 }

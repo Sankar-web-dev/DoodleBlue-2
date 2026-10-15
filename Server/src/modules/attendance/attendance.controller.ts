@@ -22,10 +22,12 @@ export async function markAttendance(
   }
 
   const currentUser = res.locals.currentUser as IUser;
+  const currentRole = res.locals.currentRole as IRole | null;
   const attendance = await AttendanceService.markAttendance(
     parsed.data,
     currentUser._id.toString(),
-    currentUser.role
+    // Resolved role doc's name is authoritative; user.role can be stale.
+    currentRole?.name ?? currentUser.role
   );
   res.status(201).json({ success: true, data: { attendance } });
 }
@@ -53,7 +55,7 @@ export async function listAttendance(
     parsed.data,
     currentUser._id.toString(),
     canManage,
-    currentUser.role
+    role?.name ?? currentUser.role
   );
   res.status(200).json({
     success: true,
@@ -77,11 +79,12 @@ export async function updateAttendance(
   }
 
   const currentUser = res.locals.currentUser as IUser;
+  const currentRole = res.locals.currentRole as IRole | null;
   const attendance = await AttendanceService.updateAttendance(
     id,
     parsed.data,
     currentUser._id.toString(),
-    currentUser.role
+    currentRole?.name ?? currentUser.role
   );
   res.status(200).json({ success: true, data: { attendance } });
 }

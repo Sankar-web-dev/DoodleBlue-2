@@ -33,10 +33,11 @@ export async function requestCertificate(
   }
 
   const currentUser = res.locals.currentUser as IUser;
+  const currentRole = res.locals.currentRole as IRole | null;
   const certificate = await CertificateService.requestCertificate(
     parsed.data,
     currentUser._id.toString(),
-    currentUser.role
+    currentRole?.name ?? currentUser.role
   );
   res.status(201).json({ success: true, data: { certificate } });
 }
@@ -53,11 +54,12 @@ export async function listCertificates(
   }
 
   const currentUser = res.locals.currentUser as IUser;
+  const role = res.locals.currentRole as IRole | null;
   const result = await CertificateService.listCertificates(
     parsed.data,
     currentUser._id.toString(),
     canManageCertificates(res),
-    currentUser.role
+    role?.name ?? currentUser.role
   );
   res.status(200).json({
     success: true,
@@ -98,11 +100,12 @@ export async function updateCertificate(
   }
 
   const currentUser = res.locals.currentUser as IUser;
+  const currentRole = res.locals.currentRole as IRole | null;
   const certificate = await CertificateService.updateCertificate(
     id,
     parsed.data,
     currentUser._id.toString(),
-    currentUser.role
+    currentRole?.name ?? currentUser.role
   );
   res.status(200).json({ success: true, data: { certificate } });
 }

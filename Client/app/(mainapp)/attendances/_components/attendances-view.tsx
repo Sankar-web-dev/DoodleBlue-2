@@ -239,44 +239,62 @@ export function AttendancesView() {
         enableSorting: false,
         cell: ({ row }) => {
           const record = row.original.record;
+
+          // Already marked — show the status plainly, with a single
+          // correction action instead of two disabled-looking buttons.
+          if (record) {
+            return (
+              <div className="flex items-center justify-end gap-2">
+                <AttendanceStatusBadge status={record.status} />
+                {canCorrect && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-xs text-muted-foreground"
+                    disabled={marking}
+                    onClick={() =>
+                      mark(
+                        row.original,
+                        record.status === "PRESENT" ? "ABSENT" : "PRESENT"
+                      )
+                    }
+                  >
+                    {marking ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : record.status === "PRESENT" ? (
+                      "Mark absent"
+                    ) : (
+                      "Mark present"
+                    )}
+                  </Button>
+                )}
+              </div>
+            );
+          }
+
+          if (!canMark) return null;
           return (
             <div className="flex items-center justify-end gap-1">
-              {(!record ? canMark : canCorrect) && (
-                <>
-                  <Button
-                    size="sm"
-                    variant={
-                      record?.status === "PRESENT" ? "default" : "ghost"
-                    }
-                    className={`h-8 text-xs ${
-                      record?.status === "PRESENT"
-                        ? ""
-                        : "text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
-                    }`}
-                    disabled={marking || record?.status === "PRESENT"}
-                    onClick={() => mark(row.original, "PRESENT")}
-                  >
-                    <Check className="h-3.5 w-3.5 mr-1" />
-                    Present
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={
-                      record?.status === "ABSENT" ? "destructive" : "ghost"
-                    }
-                    className={`h-8 text-xs ${
-                      record?.status === "ABSENT"
-                        ? ""
-                        : "text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    }`}
-                    disabled={marking || record?.status === "ABSENT"}
-                    onClick={() => mark(row.original, "ABSENT")}
-                  >
-                    <X className="h-3.5 w-3.5 mr-1" />
-                    Absent
-                  </Button>
-                </>
-              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
+                disabled={marking}
+                onClick={() => mark(row.original, "PRESENT")}
+              >
+                <Check className="h-3.5 w-3.5 mr-1" />
+                Present
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                disabled={marking}
+                onClick={() => mark(row.original, "ABSENT")}
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Absent
+              </Button>
             </div>
           );
         },

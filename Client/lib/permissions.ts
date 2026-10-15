@@ -50,10 +50,8 @@ export const ALL_ACTIONS: Action[] = ["create", "read", "update", "delete"];
  * variants ("Event Coordinator", "EVENT_COORDINATOR", …).
  */
 export function isEventCoordinatorRole(roleName?: string): boolean {
-  return (
-    (roleName ?? "").trim().toUpperCase().replace(/[\s-]+/g, "_") ===
-    "EVENT_COORDINATOR"
-  );
+  const n = (roleName ?? "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+  return n.includes("EVENT") && n.includes("COORDINATOR");
 }
 
 /**
