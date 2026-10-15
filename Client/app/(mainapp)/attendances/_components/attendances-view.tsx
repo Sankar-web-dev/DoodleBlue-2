@@ -11,6 +11,7 @@ import {
   X,
   Building2,
   Globe,
+  CalendarClock,
 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -75,6 +76,10 @@ export function AttendancesView() {
   } = useManageableEvents(user);
 
   const selectedEvent = markableEvents.find((e) => e.id === eventId);
+  // Attendance opens when the event starts — the server enforces this too.
+  const eventNotStarted =
+    !!selectedEvent &&
+    new Date(selectedEvent.startAt).getTime() > Date.now();
 
   const regsQuery = useRegistrations(
     { eventId },
@@ -120,6 +125,10 @@ export function AttendancesView() {
   const marking = markMutation.isPending || updateMutation.isPending;
 
   function mark(row: RosterRow, status: AttendanceStatus) {
+    if (eventNotStarted) {
+      toast.error("Attendance opens when the event starts");
+      return;
+    }
     const label =
       status === "PRESENT" ? "present" : "absent";
     const opts = {
@@ -232,7 +241,7 @@ export function AttendancesView() {
                 size="sm"
                 variant="ghost"
                 className="h-8 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
-                disabled={marking}
+                disabled={marking || eventNotStarted}
                 onClick={() => mark(row.original, "PRESENT")}
               >
                 <Check className="h-3.5 w-3.5 mr-1" />
@@ -242,7 +251,7 @@ export function AttendancesView() {
                 size="sm"
                 variant="ghost"
                 className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                disabled={marking}
+                disabled={marking || eventNotStarted}
                 onClick={() => mark(row.original, "ABSENT")}
               >
                 <X className="h-3.5 w-3.5 mr-1" />
@@ -254,7 +263,7 @@ export function AttendancesView() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canMark, canCorrect, marking, eventId]
+    [canMark, canCorrect, marking, eventId, eventNotStarted]
   );
 
   // ── Records columns (student's own attendance history) ────────────────────
@@ -417,6 +426,15 @@ export function AttendancesView() {
                   <span className="font-medium">{counts.unmarked}</span>{" "}
                   unmarked
                 </span>
+                {eventNotStarted && (
+                  <Badge
+                    variant="secondary"
+                    className="text-xs font-medium"
+                  >
+                    <CalendarClock className="h-3 w-3 mr-1" />
+                    Opens {formatDate(selectedEvent!.startAt)}
+                  </Badge>
+                )}
                 {selectedEvent && (
                   <span className="ml-auto text-xs">
                     {selectedEvent.title} · {formatDate(selectedEvent.startAt)}

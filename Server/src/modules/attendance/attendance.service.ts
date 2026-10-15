@@ -148,6 +148,15 @@ export async function markAttendance(
     throw new ApiError(404, "EVENT_NOT_FOUND", "Event not found");
   }
 
+  // Attendance can only be recorded once the event has started.
+  if (event.startAt.getTime() > Date.now()) {
+    throw new ApiError(
+      400,
+      "EVENT_NOT_STARTED",
+      "Attendance opens when the event starts"
+    );
+  }
+
   await assertAuthorizedMarker(event, markerId, markerRole);
 
   // The student must hold a confirmed registration —
