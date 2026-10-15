@@ -128,10 +128,237 @@ const options: swaggerJsdoc.Options = {
             email: { type: "string", format: "email" },
             role: { type: "string", example: "FACULTY" },
             isActive: { type: "boolean", example: true },
-            profileImageUrl: { type: "string", nullable: true },
+            image: { type: "string", nullable: true },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
           },
+        },
+        AuthUser: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            name: { type: "string" },
+            email: { type: "string", format: "email" },
+            role: { type: "string", example: "SUPER_ADMIN" },
+            roleId: { type: "string", nullable: true },
+            image: { type: "string", nullable: true },
+            mustChangePassword: { type: "boolean", example: false },
+            isActive: { type: "boolean", example: true },
+            permissions: {
+              type: "array",
+              items: { $ref: "#/components/schemas/Permission" },
+            },
+          },
+        },
+        UserOption: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            name: { type: "string" },
+            email: { type: "string", format: "email" },
+            role: { type: "string" },
+            isActive: { type: "boolean" },
+          },
+        },
+        Meta: {
+          type: "object",
+          properties: {
+            page: { type: "integer", example: 1 },
+            limit: { type: "integer", example: 50 },
+            total: { type: "integer", example: 42 },
+            totalPages: { type: "integer", example: 1 },
+          },
+        },
+        Club: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            name: { type: "string", example: "Coding Club" },
+            description: { type: "string" },
+            department: { type: "string", example: "Computer Science" },
+            logoUrl: { type: "string", nullable: true },
+            facultyCoordinatorId: { type: "string" },
+            facultyCoordinator: {
+              type: "object",
+              nullable: true,
+              properties: {
+                id: { type: "string" },
+                name: { type: "string" },
+                email: { type: "string" },
+              },
+            },
+            isActive: {
+              type: "boolean",
+              description: "False until a SUPER_ADMIN approves the club",
+              example: false,
+            },
+            createdBy: { type: "string" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        ClubMembership: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            clubId: { type: "string" },
+            club: { $ref: "#/components/schemas/Club", nullable: true },
+            studentId: { type: "string" },
+            student: { $ref: "#/components/schemas/User", nullable: true },
+            membershipRole: {
+              type: "string",
+              enum: ["MEMBER", "COORDINATOR"],
+              description:
+                "Club-scoped responsibility — separate from the global RBAC role",
+            },
+            status: {
+              type: "string",
+              enum: ["PENDING", "ACTIVE", "INACTIVE"],
+              description:
+                "Starts PENDING — a SUPER_ADMIN approves it to ACTIVE",
+            },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        Event: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            title: { type: "string", example: "Hackathon 2026" },
+            description: { type: "string" },
+            eventType: {
+              type: "string",
+              enum: ["GENERAL", "CLUB"],
+              description:
+                "GENERAL events are visible to everyone; CLUB events only to ACTIVE club members",
+            },
+            clubId: {
+              type: "string",
+              nullable: true,
+              description: "Required when eventType is CLUB",
+            },
+            club: { $ref: "#/components/schemas/Club", nullable: true },
+            venue: { type: "string", example: "Main Auditorium" },
+            imageUrl: { type: "string", nullable: true },
+            startAt: { type: "string", format: "date-time" },
+            endAt: { type: "string", format: "date-time" },
+            registrationDeadline: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+            },
+            capacity: { type: "integer", nullable: true },
+            status: {
+              type: "string",
+              enum: [
+                "DRAFT",
+                "PENDING",
+                "APPROVED",
+                "REJECTED",
+                "PUBLISHED",
+                "CANCELLED",
+              ],
+            },
+            rejectionReason: { type: "string", nullable: true },
+            createdBy: { type: "string" },
+            approvedBy: { type: "string", nullable: true },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        EventRegistration: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            eventId: { type: "string" },
+            event: { $ref: "#/components/schemas/Event", nullable: true },
+            studentId: { type: "string" },
+            student: { $ref: "#/components/schemas/User", nullable: true },
+            status: {
+              type: "string",
+              enum: [
+                "REGISTERED",
+                "PENDING",
+                "APPROVED",
+                "REJECTED",
+                "CANCELLED",
+              ],
+              description:
+                "GENERAL events start REGISTERED; CLUB events start PENDING and need coordinator approval",
+            },
+            rejectionReason: { type: "string", nullable: true },
+            reviewedBy: { type: "string", nullable: true },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        AttendanceRecord: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            eventId: { type: "string" },
+            event: { $ref: "#/components/schemas/Event", nullable: true },
+            studentId: { type: "string" },
+            student: { $ref: "#/components/schemas/User", nullable: true },
+            status: { type: "string", enum: ["PRESENT", "ABSENT"] },
+            markedBy: {
+              type: "object",
+              nullable: true,
+              properties: {
+                id: { type: "string" },
+                name: { type: "string" },
+              },
+            },
+            markedAt: { type: "string", format: "date-time" },
+          },
+        },
+        Certificate: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            eventId: { type: "string" },
+            event: { $ref: "#/components/schemas/Event", nullable: true },
+            studentId: { type: "string" },
+            student: { $ref: "#/components/schemas/User", nullable: true },
+            status: {
+              type: "string",
+              enum: ["PENDING", "APPROVED", "REJECTED", "ISSUED"],
+            },
+            requestedBy: {
+              type: "object",
+              nullable: true,
+              properties: {
+                id: { type: "string" },
+                name: { type: "string" },
+              },
+            },
+            reviewedBy: { type: "string", nullable: true },
+            rejectionReason: { type: "string", nullable: true },
+            certificateUrl: { type: "string", nullable: true },
+            issuedAt: { type: "string", format: "date-time", nullable: true },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+      },
+      parameters: {
+        ObjectIdPath: {
+          in: "path",
+          name: "id",
+          required: true,
+          schema: { type: "string" },
+          description: "MongoDB ObjectId",
+        },
+        PageQuery: {
+          in: "query",
+          name: "page",
+          schema: { type: "integer", minimum: 1, default: 1 },
+        },
+        LimitQuery: {
+          in: "query",
+          name: "limit",
+          schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
         },
       },
       responses: {
@@ -171,8 +398,14 @@ const options: swaggerJsdoc.Options = {
     },
     security: [{ sessionCookie: [] }],
   },
-  // Scan all route files for @openapi JSDoc comments
-  apis: ["./src/modules/**/*.routes.ts", "./src/app.ts"],
+  // Scan route files for @openapi JSDoc — covers both tsx dev (src) and
+  // compiled production builds (dist).
+  apis: [
+    "./src/modules/**/*.routes.ts",
+    "./src/app.ts",
+    "./dist/modules/**/*.routes.js",
+    "./dist/app.js",
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

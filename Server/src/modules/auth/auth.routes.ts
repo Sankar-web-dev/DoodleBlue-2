@@ -72,7 +72,51 @@ function saveSession(req: Request): Promise<void> {
   });
 }
 
-// POST /api/v1/auth/login
+/**
+ * @openapi
+ * /api/v1/auth/login:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Log in
+ *     description: >-
+ *       Verifies credentials and sets an HttpOnly session cookie.
+ *       Rate-limited to 10 attempts per 15 minutes per IP.
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email: { type: string, format: email }
+ *               password: { type: string, minLength: 1 }
+ *     responses:
+ *       200:
+ *         description: Signed in — session cookie set
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user: { $ref: '#/components/schemas/AuthUser' }
+ *       400: { $ref: '#/components/responses/ValidationError' }
+ *       401:
+ *         description: Invalid credentials or inactive account
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ApiError' }
+ *       429:
+ *         description: Too many login attempts
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ApiError' }
+ */
 router.post(
   "/login",
   loginLimiter,
@@ -130,7 +174,28 @@ router.post(
   }
 );
 
-// POST /api/v1/auth/logout
+/**
+ * @openapi
+ * /api/v1/auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Log out
+ *     description: Destroys the session and clears the session cookie.
+ *     responses:
+ *       200:
+ *         description: Logged out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message: { type: string, example: "Logged out successfully" }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
 router.post(
   "/logout",
   authenticate,
@@ -162,7 +227,30 @@ router.post(
   }
 );
 
-// GET /api/v1/auth/me
+/**
+ * @openapi
+ * /api/v1/auth/me:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Current session user
+ *     description: >-
+ *       Returns the logged-in user with their role's permission matrix.
+ *       Permissions are empty for SUPER_ADMIN (implicitly all).
+ *     responses:
+ *       200:
+ *         description: Current user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user: { $ref: '#/components/schemas/AuthUser' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
 router.get(
   "/me",
   authenticate,
@@ -178,7 +266,45 @@ router.get(
   }
 );
 
-// PATCH /api/v1/auth/change-password
+/**
+ * @openapi
+ * /api/v1/auth/change-password:
+ *   patch:
+ *     tags: [Auth]
+ *     summary: Change password
+ *     description: >-
+ *       Changes the current user's password, clears `mustChangePassword`,
+ *       and rotates the session.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, newPassword]
+ *             properties:
+ *               currentPassword: { type: string }
+ *               newPassword: { type: string, minLength: 10, maxLength: 128 }
+ *     responses:
+ *       200:
+ *         description: Password changed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message: { type: string }
+ *       400:
+ *         description: Wrong current password / unchanged / invalid input
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ApiError' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
 router.patch(
   "/change-password",
   authenticate,

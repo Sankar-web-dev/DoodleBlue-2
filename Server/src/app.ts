@@ -1,5 +1,6 @@
 import express, { ErrorRequestHandler } from "express";
 import path from "path";
+import mongoose from "mongoose";
 import cors from "cors";
 import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
@@ -14,6 +15,7 @@ import eventRegistrationRoutes from "./modules/event-registration/event-registra
 import attendanceRoutes from "./modules/attendance/attendance.routes";
 import certificateRoutes from "./modules/certificate/certificate.routes";
 import { ApiError } from "./lib/ApiError";
+import { renderLandingPage } from "./lib/landing-page";
 import { swaggerSpec } from "./config/swagger";
 
 export function createApp() {
@@ -40,6 +42,12 @@ export function createApp() {
       credentials: true,
     })
   );
+
+  // Swagger UI — on in development; in production only when
+  // API_DOCS_ENABLED=true is set in the environment.
+  const apiDocsEnabled =
+    process.env.API_DOCS_ENABLED === "true" ||
+    process.env.NODE_ENV !== "production";
 
   app.use(express.json({ limit: "1mb" }));
   app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
@@ -73,15 +81,45 @@ export function createApp() {
    *                       type: string
    *                       example: ok
    */
+  // Branded landing page for browsers hitting the deployed root.
+  app.get("/", (_req, res) => {
+    // Helmet's default CSP blocks the inline <style> — allow styles only.
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'none'; style-src 'unsafe-inline'"
+    );
+    res
+      .status(200)
+      .type("html")
+      .send(
+        renderLandingPage({
+          version: process.env.npm_package_version ?? "1.0.0",
+          uptimeSeconds: process.uptime(),
+          docsEnabled: apiDocsEnabled,
+        })
+      );
+  });
+
   app.get("/api/v1/health", (_req, res) => {
-    res.status(200).json({
-      success: true,
-      data: { status: "ok" },
+    const dbState = mongoose.connection.readyState;
+    const dbConnected = dbState === 1;
+
+    res.status(dbConnected ? 200 : 503).json({
+      success: dbConnected,
+      data: {
+        status: dbConnected ? "ok" : "degraded",
+        uptime: Math.round(process.uptime()),
+        timestamp: new Date().toISOString(),
+        db: {
+          status: dbConnected ? "connected" : "disconnected",
+          name: mongoose.connection.name ?? null,
+        },
+        version: process.env.npm_package_version ?? "1.0.0",
+      },
     });
   });
 
-  // Swagger UI — only available outside production
-  if (process.env.NODE_ENV !== "production") {
+  if (apiDocsEnabled) {
     app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
     app.get("/api-docs.json", (_req, res) => {
       res.setHeader("Content-Type", "application/json");
