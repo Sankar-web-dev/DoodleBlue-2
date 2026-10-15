@@ -83,7 +83,7 @@ export function MembershipForm({ membership }: MembershipFormProps) {
       } else {
         toast.warning("Membership added — email not sent", {
           description:
-            "SMTP isn't configured; share credentials with the member manually.",
+            "Email isn't configured; share credentials with the member manually.",
         });
       }
       router.push("/club-membership");

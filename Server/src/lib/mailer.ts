@@ -1,84 +1,58 @@
-import nodemailer, { type Transporter } from "nodemailer";
+import { Resend } from "resend";
 
 /**
- * SMTP mailer for transactional email (account invites, temp passwords).
+ * Resend mailer for transactional email (account invites, temp passwords).
  *
  * Configure via env:
- *   MAIL_HOST / MAIL_PORT / MAIL_USER / MAIL_PASS / MAIL_FROM
- * (Gmail: host smtp.gmail.com, port 465, and an App Password as MAIL_PASS.)
+ *   RESEND_API_KEY — API key from https://resend.com
+ *   MAIL_FROM      — sender identity (defaults to Resend's test sender)
  *
- * The transporter is created lazily — dotenv.config() runs after this module's
+ * The client is created lazily — dotenv.config() runs after this module's
  * imports are evaluated, so env vars are not safe to read at module top level.
  */
 
 export function isMailConfigured(): boolean {
-  return Boolean(
-    process.env.MAIL_HOST && process.env.MAIL_USER && process.env.MAIL_PASS
-  );
+  return Boolean(process.env.RESEND_API_KEY);
 }
 
-let transporter: Transporter | null | undefined;
+let resend: Resend | null | undefined;
 
-function getTransporter(): Transporter | null {
-  if (transporter !== undefined) return transporter;
+function getResend(): Resend | null {
+  if (resend !== undefined) return resend;
 
-  transporter = isMailConfigured()
-    ? nodemailer.createTransport({
-        host: process.env.MAIL_HOST,
-        port: Number(process.env.MAIL_PORT ?? 465),
-        secure: Number(process.env.MAIL_PORT ?? 465) === 465,
-        auth: {
-          user: process.env.MAIL_USER,
-          pass: process.env.MAIL_PASS,
-        },
-      })
-    : null;
+  resend = isMailConfigured() ? new Resend(process.env.RESEND_API_KEY) : null;
 
-  if (transporter) {
-    transporter
-      .verify()
-      .then(() => console.log("[mail] SMTP connection verified"))
-      .catch((error: unknown) =>
-        console.warn(
-          "[mail] SMTP verify failed:",
-          error instanceof Error ? error.message : error
-        )
-      );
-  } else {
-    console.warn(
-      "[mail] SMTP not configured — set MAIL_HOST/MAIL_USER/MAIL_PASS in .env"
-    );
+  if (!resend) {
+    console.warn("[mail] Resend not configured — set RESEND_API_KEY in .env");
   }
 
-  return transporter;
+  return resend;
 }
 
 /**
  * Sends a newly provisioned account's temporary password.
- * Returns false (without throwing) when SMTP is not configured or send fails.
+ * Returns false (without throwing) when Resend is not configured or send fails.
  */
 export async function sendTempPasswordEmail(opts: {
   to: string;
   name: string;
   password: string;
 }): Promise<boolean> {
-  const tx = getTransporter();
-  if (!tx) {
+  const client = getResend();
+  if (!client) {
     console.warn(
-      `[mail] SMTP not configured — could not send credentials to ${opts.to}`
+      `[mail] Resend not configured — could not send credentials to ${opts.to}`
     );
     return false;
   }
 
   const loginUrl = `${process.env.CLIENT_URL ?? "http://localhost:3000"}/login`;
 
-  try {
-    await tx.sendMail({
-      from:
-        process.env.MAIL_FROM ?? `CampusLMS <${process.env.MAIL_USER}>`,
-      to: opts.to,
-      subject: "Your CampusLMS account is ready",
-      html: `
+  const { data, error } = await client.emails.send({
+    from: process.env.MAIL_FROM ?? "CampusLMS <onboarding@resend.dev>",
+    to: opts.to,
+    subject: "Your CampusLMS account is ready",
+    html: `
       <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px">
         <h2 style="margin:0 0 8px">Welcome to CampusLMS, ${opts.name}</h2>
         <p style="color:#555">An account has been created for you. Sign in with these credentials:</p>
@@ -94,13 +68,16 @@ export async function sendTempPasswordEmail(opts: {
         </p>
       </div>
     `,
-    });
-    return true;
-  } catch (error) {
+  });
+
+  if (error) {
     console.error(
       `[mail] Failed to send credentials to ${opts.to}:`,
-      error
+      error.message
     );
     return false;
   }
+
+  console.log(`[mail] Credentials sent to ${opts.to} (id: ${data.id})`);
+  return true;
 }

@@ -116,7 +116,7 @@ export function UserForm({ user }: UserFormProps) {
       } else {
         toast.warning("User created — email not sent", {
           description:
-            "SMTP isn't configured on the server; share credentials manually.",
+            "Email isn't configured on the server; share credentials manually.",
         });
       }
       router.push("/users");
